@@ -390,14 +390,12 @@ infix 3 _QED
     QED
 
 -- use *N-distrib-+N
-*N-assoc : (n m k : Nat) -> (n *N m) *N k == n *N (m *N k)
+*N-assoc : (n m k : Nat) -> n *N (m *N k) == (n *N m) *N k
 *N-assoc zero m k = _ QED
-*N-assoc (suc n) m k =
-  (m +N n *N m) *N k
-    =[ *N-distrib-+N m _ _ ]
+*N-assoc (suc n) m k rewrite *N-assoc n m k =
    m *N k +N (n *N m) *N k
-     =[ ap (_ +N_) (*N-assoc n _ _) ]
-   m *N k +N n *N m *N k
+    =[ ==-symm (*N-distrib-+N m _ _) ]
+  (m +N n *N m) *N k
      QED
 
 *N-right-zero : (n : Nat) -> n *N zero == zero
