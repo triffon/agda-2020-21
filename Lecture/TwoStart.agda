@@ -361,6 +361,11 @@ x =[ refl _ ] (refl _) = refl _
 
 infixr 1 _=[_]_
 
+_=[<_]_ : {A : Set} {y z : A} -> (x : A) -> y == x -> y == z -> x == z
+x =[< refl _ ] (refl _) = refl _
+
+infixr 1 _=[<_]_
+
 _QED : {A : Set} -> (x : A) -> x == x
 x QED = refl x
 
@@ -371,7 +376,7 @@ infix 3 _QED
 +N-commut' : (n m : Nat) -> n +N m == m +N n
 +N-commut' zero m =
   m
-    =[ ==-symm (+N-right-zero m) ]
+    =[< +N-right-zero m ]
   m +N zero
     QED
 +N-commut' (suc n) m rewrite +N-commut' n m =
@@ -386,7 +391,7 @@ infix 3 _QED
 *N-distrib-+N zero m k = _ QED
 *N-distrib-+N (suc n) m k rewrite *N-distrib-+N n m k =
   k +N n *N k +N m *N k
-    =[  ==-symm (+N-assoc k _ _) ]
+    =[< +N-assoc k _ _ ]
   (k +N n *N k) +N m *N k
     QED
 
@@ -395,7 +400,7 @@ infix 3 _QED
 *N-assoc zero m k = _ QED
 *N-assoc (suc n) m k rewrite *N-assoc n m k =
    m *N k +N (n *N m) *N k
-    =[ ==-symm (*N-distrib-+N m _ _) ]
+    =[< *N-distrib-+N m _ _ ]
   (m +N n *N m) *N k
      QED
 
@@ -407,7 +412,7 @@ infix 3 _QED
 *N-right-suc zero m = _ QED
 *N-right-suc (suc n) m rewrite *N-right-suc n m =
   suc (m +N n *N m +N n)
-   =[ ==-symm (ap suc (+N-assoc m _ _)) ]
+   =[< ap suc (+N-assoc m _ _) ]
   suc ((m +N n *N m) +N n)
    =[  +N-right-suc _ _  ]
   (m +N n *N m) +N suc n
@@ -417,13 +422,13 @@ infix 3 _QED
 *N-commut : (n m : Nat) -> n *N m == m *N n
 *N-commut zero m =
   zero
-    =[ ==-symm (*N-right-zero m) ]
+    =[< *N-right-zero m ]
   m *N zero
     QED
 *N-commut (suc n) m rewrite *N-commut n m =
   m +N m *N n
     =[ +N-commut m _ ]
   m *N n +N m
-    =[ ==-symm (*N-right-suc m _) ]
+    =[< *N-right-suc m _ ]
   m *N suc n
     QED
