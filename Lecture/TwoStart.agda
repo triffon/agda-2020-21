@@ -196,30 +196,36 @@ record _*_ (A : Set) (B : Set) : Set where
     fst : A
     snd : B
 
-{-
 -- STUDENTS TIME
 +-assoc : {A B C : Set} -> A + (B + C) -> (A + B) + C
-+-assoc = {!!}
++-assoc (inl x) = inl (inl x)
++-assoc (inr (inl x)) = inl (inr x)
++-assoc (inr (inr x)) = inr x
 
 *-assoc : {A B C : Set} -> A * (B * C) -> (A * B) * C
-*-assoc = {!!}
+*-assoc (x , (y , z)) = (x , y) , z
 
 *-distrib-+ : {A B C : Set} -> A * (B + C) -> A * B + A * C
-*-distrib-+ = {!!}
+*-distrib-+ (x , inl y) = inl (x , y)
+*-distrib-+ (x , inr y) = inr (x , y)
 
 +N-right-suc : (n m : Nat) -> suc (n +N m) == n +N suc m
-+N-right-suc = {!!}
++N-right-suc zero m = refl (suc m)
++N-right-suc (suc n) m = ap suc (+N-right-suc n m)
 
 ==-symm : {X : Set} {x y : X} -> x == y -> y == x
-==-symm = {!!}
+==-symm {X} {x} (refl _) = refl x
 
 ==-trans : {X : Set} {x y z : X} -> x == y -> y == z -> x == z
-==-trans = {!!}
+==-trans {X} {x} (refl _) (refl _) = refl x
 
 -- you'll need ==-symm, ==-trans, +N-right-zero and +N-right-suc here
 +N-commut : (n m : Nat) -> n +N m == m +N n
-+N-commut = {!!}
++N-commut zero m = ==-symm (+N-right-zero m)
++N-commut (suc n) m = ==-trans (ap suc (+N-commut n m)) (+N-right-suc m n)
 
+{--
+-- Already solved
 data List (a : Set) : Set where
   [] : List a
   _,-_ : a -> List a -> List a
@@ -278,34 +284,56 @@ All = {!!}
 replicate-all-==-orig : {A : Set} {x : A} (n : Nat) -> All (_== x) (replicate n x)
 replicate-all-==-orig = {!!}
 -- this actually isn't necessary thanks to parametricity, but anyway
+-}
 
 double : Nat -> Nat
-double = {!!}
+double zero = zero
+double (suc n) = suc (suc (double n))
 
 doubleIsEven : (n : Nat) -> Even (double n)
-doubleIsEven = {!!}
+doubleIsEven zero = <>
+doubleIsEven (suc n) = doubleIsEven n
+
+sucOddIsEven : (n : Nat) -> Odd n -> Even (suc n)
+sucOddIsEven (suc zero) p = <>
+sucOddIsEven (suc (suc n)) p = sucOddIsEven n p
 
 
 -- every natural number is either Even or Odd
 decEvenOrOdd : (n : Nat) -> Even n + Odd n
-decEvenOrOdd = {!!}
+decEvenOrOdd zero = inl <>
+decEvenOrOdd (suc n) with decEvenOrOdd n
+... | inl p = inr (sucEvenIsOdd n p)
+... | inr p = inl (sucOddIsEven n p)
+
+sucOdd'IsEven' : {n : Nat} -> Odd' n -> Even' (suc n)
+sucOdd'IsEven' oone = esuc ezero
+sucOdd'IsEven' (osuc p) = esuc (sucOdd'IsEven' p)
 
 -- every natural number is either Even' or Odd'
 decEven'OrOdd' : (n : Nat) -> Even' n + Odd' n
-decEven'OrOdd' = {!!}
+decEven'OrOdd' zero = inl ezero
+decEven'OrOdd' (suc n) with decEven'OrOdd' n
+... | inl p = inr (sucEven'IsOdd' p)
+... | inr p = inl (sucOdd'IsEven' p)
 
 <=-refl : (n : Nat) -> n <= n
-<=-refl = {!!}
+<=-refl zero = ozero
+<=-refl (suc n) = osuc (<=-refl n)
 
 <=-antisym : {n m : Nat} -> n <= m -> m <= n -> n == m
-<=-antisym = {!!}
+<=-antisym ozero ozero = refl _
+<=-antisym (osuc p) (osuc q) rewrite <=-antisym p q = refl _
+
 
 <=-mono-left-+ : {n m : Nat} (k : Nat) -> n <= m -> k +N n <= k +N m
-<=-mono-left-+ = {!!}
+<=-mono-left-+ zero p = p
+<=-mono-left-+ (suc k) p = osuc (<=-mono-left-+ k p)
 
 -- you might need a lemma here
 <=-mono-right-+ : {n m : Nat} (k : Nat) -> n <= m -> n +N k <= m +N k
-<=-mono-right-+ = {!!}
+<=-mono-right-+ {n} {m} zero p rewrite +N-right-zero n | +N-right-zero m = p
+<=-mono-right-+ {n} {m} (suc k) p rewrite ==-symm (+N-right-suc n k) | ==-symm (+N-right-suc m k) = osuc (<=-mono-right-+ k p)
 
 -- multiplication using repeated addition
 _*N_ : Nat -> Nat -> Nat
@@ -315,7 +343,8 @@ infixr 40 _*N_
 
 -- EXERCISE: multiplication right identity
 *N-right-id : (n : Nat) -> n *N 1 == n
-*N-right-id = {!!}
+*N-right-id zero = refl _
+*N-right-id (suc n) rewrite *N-right-id n = refl _
 
 -- EQUATIONAL REASONING UTILS
 -- YOU CAN USE THESE FOR *N TASKS, BUT THEY ARE NOT MANDATORY
@@ -354,37 +383,56 @@ infix 3 _QED
 
 -- multiplication distributes over addition
 *N-distrib-+N : (n m k : Nat) -> (n +N m) *N k == n *N k +N m *N k
-*N-distrib-+N = {!!}
+*N-distrib-+N zero m k = _ QED
+*N-distrib-+N (suc n) m k =
+  k +N (n +N m) *N k
+    =[ ap (_ +N_) (*N-distrib-+N n _ _) ]
+  k +N n *N k +N m *N k
+    =[  ==-symm (+N-assoc k _ _) ]
+  (k +N n *N k) +N m *N k
+    QED
 
 -- use *N-distrib-+N
 *N-assoc : (n m k : Nat) -> (n *N m) *N k == n *N (m *N k)
-*N-assoc = {!!}
+*N-assoc zero m k = _ QED
+*N-assoc (suc n) m k = 
+  (m +N n *N m) *N k
+    =[ *N-distrib-+N m _ _ ]
+   m *N k +N (n *N m) *N k
+     =[ ap (_ +N_) (*N-assoc n _ _) ]
+   m *N k +N n *N m *N k
+     QED
+
+*N-right-zero : (n : Nat) -> n *N zero == zero
+*N-right-zero zero = refl _
+*N-right-zero (suc n) = *N-right-zero n
+
+*N-right-suc : (n m : Nat) -> n *N suc m == n *N m +N n
+*N-right-suc zero m = _ QED
+*N-right-suc (suc n) m =
+  suc (m +N n *N suc m)
+   =[ ap suc (ap (m +N_) (*N-right-suc n _)) ]
+  suc (m +N n *N m +N n)
+   =[ ==-symm (ap suc (+N-assoc m _ _)) ]
+  suc ((m +N n *N m) +N n)
+   =[  +N-right-suc _ _  ]
+  (m +N n *N m) +N suc n
+   QED
 
 -- figure out what lemmas you need
 *N-commut : (n m : Nat) -> n *N m == m *N n
-*N-commut = {!!}
+*N-commut zero m =
+  zero
+    =[ ==-symm (*N-right-zero m) ]
+  m *N zero
+    QED
+*N-commut (suc n) m =
+  m +N n *N m
+    =[ +N-commut m _ ]
+  n *N m +N m
+    =[ ap (_+N m) (*N-commut n _) ]
+  m *N n +N m
+    =[ ==-symm (*N-right-suc m _) ]
+  m *N suc n
+    QED
 
--}
-
-{-
--- sigma
---record _><_ ??? : Set where
-
---open _><_ public
--- infixr 8 _><_
-
--- _*_ : Set -> Set -> Set
--- A * B = {!!}
--- infixr 9 _*_
-
--- difference??
--- correct division by 2
--- you can't divide odd numbers
--- and you also always get back a number that is twice as small as your original one
-div2 : (n : Nat) -> Even n -> Nat >< \m -> double m == n
-div2 = {!!}
-
--- use with!
-<=-total : (n m : Nat) -> n <= m + m <= n
-<=-total = {!!}
--}
