@@ -332,8 +332,9 @@ decEven'OrOdd' (suc n) with decEven'OrOdd' n
 
 -- you might need a lemma here
 <=-mono-right-+ : {n m : Nat} (k : Nat) -> n <= m -> n +N k <= m +N k
-<=-mono-right-+ {n} {m} zero p rewrite +N-right-zero n | +N-right-zero m = p
-<=-mono-right-+ {n} {m} (suc k) p rewrite ==-symm (+N-right-suc n k) | ==-symm (+N-right-suc m k) = osuc (<=-mono-right-+ k p)
+<=-mono-right-+ zero ozero = ozero
+<=-mono-right-+ {n} {m} (suc k) ozero rewrite ==-symm (+N-right-suc m k) = osuc (<=-mono-right-+ k ozero)
+<=-mono-right-+ k (osuc p) = osuc (<=-mono-right-+ k p)
 
 -- multiplication using repeated addition
 _*N_ : Nat -> Nat -> Nat
