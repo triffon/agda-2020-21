@@ -373,20 +373,17 @@ infix 3 _QED
     =[ ==-symm (+N-right-zero m) ]
   m +N zero
     QED
-+N-commut' (suc n) m =
-  suc (n +N m)
-    =[ ap suc (+N-commut' n m) ]
++N-commut' (suc n) m rewrite +N-commut' n m =
   suc (m +N n)
     =[ +N-right-suc m n ]
   m +N suc n
     QED
 
+
 -- multiplication distributes over addition
 *N-distrib-+N : (n m k : Nat) -> (n +N m) *N k == n *N k +N m *N k
 *N-distrib-+N zero m k = _ QED
-*N-distrib-+N (suc n) m k =
-  k +N (n +N m) *N k
-    =[ ap (_ +N_) (*N-distrib-+N n _ _) ]
+*N-distrib-+N (suc n) m k rewrite *N-distrib-+N n m k =
   k +N n *N k +N m *N k
     =[  ==-symm (+N-assoc k _ _) ]
   (k +N n *N k) +N m *N k
@@ -395,7 +392,7 @@ infix 3 _QED
 -- use *N-distrib-+N
 *N-assoc : (n m k : Nat) -> (n *N m) *N k == n *N (m *N k)
 *N-assoc zero m k = _ QED
-*N-assoc (suc n) m k = 
+*N-assoc (suc n) m k =
   (m +N n *N m) *N k
     =[ *N-distrib-+N m _ _ ]
    m *N k +N (n *N m) *N k
@@ -409,9 +406,7 @@ infix 3 _QED
 
 *N-right-suc : (n m : Nat) -> n *N suc m == n *N m +N n
 *N-right-suc zero m = _ QED
-*N-right-suc (suc n) m =
-  suc (m +N n *N suc m)
-   =[ ap suc (ap (m +N_) (*N-right-suc n _)) ]
+*N-right-suc (suc n) m rewrite *N-right-suc n m =
   suc (m +N n *N m +N n)
    =[ ==-symm (ap suc (+N-assoc m _ _)) ]
   suc ((m +N n *N m) +N n)
@@ -435,4 +430,3 @@ infix 3 _QED
     =[ ==-symm (*N-right-suc m _) ]
   m *N suc n
     QED
-
