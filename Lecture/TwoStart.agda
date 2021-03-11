@@ -421,11 +421,9 @@ infix 3 _QED
     =[ ==-symm (*N-right-zero m) ]
   m *N zero
     QED
-*N-commut (suc n) m =
-  m +N n *N m
+*N-commut (suc n) m rewrite *N-commut n m =
+  m +N m *N n
     =[ +N-commut m _ ]
-  n *N m +N m
-    =[ ap (_+N m) (*N-commut n _) ]
   m *N n +N m
     =[ ==-symm (*N-right-suc m _) ]
   m *N suc n
