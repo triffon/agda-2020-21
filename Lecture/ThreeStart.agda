@@ -205,20 +205,28 @@ infix 3 _QED
     QED
 
 
-{-
-
 <=-refl : (n : Nat) -> n <= n
-<=-refl = ?
+<=-refl zero = ozero
+<=-refl (suc n) = osuc (<=-refl n)
 
 <=-antisym : {n m : Nat} -> n <= m -> m <= n -> n == m
-<=-antisym = {!!}
+<=-antisym ozero ozero = refl _
+<=-antisym (osuc p) (osuc q) rewrite <=-antisym p q = refl _
 
 <=-mono-left-+ : {n m : Nat} (k : Nat) -> n <= m -> k +N n <= k +N m
-<=-mono-left-+ = {!!}
+<=-mono-left-+ zero p = p
+<=-mono-left-+ (suc k) p = osuc (<=-mono-left-+ k p)
+
+<=-right-+ : {m : Nat} (n : Nat) -> n <= m +N n
+<=-right-+ zero = ozero
+-- can we do it smoothly without explicitating m?
+<=-right-+ {m} (suc n) rewrite +N-right-suc m n = osuc (<=-right-+ n)
 
 -- you might need a lemma here
 <=-mono-right-+ : {n m : Nat} (k : Nat) -> n <= m -> n +N k <= m +N k
-<=-mono-right-+ = {!!}
+-- <=-mono-right-+ {n} {m} k rewrite +N-commut n k | +N-commut m k = <=-mono-left-+ {n} {m} k
+<=-mono-right-+ k ozero = <=-right-+ k
+<=-mono-right-+ k (osuc p) = osuc (<=-mono-right-+ k p)
 
 -- multiplication using repeated addition
 _*N_ : Nat -> Nat -> Nat
@@ -228,62 +236,91 @@ infixr 40 _*N_
 
 -- EXERCISE: multiplication right identity
 *N-right-id : (n : Nat) -> n *N 1 == n
-*N-right-id = {!!}
+*N-right-id zero = refl _
+*N-right-id (suc n) rewrite *N-right-id n = refl _
 
 -- multiplication distributes over addition
 *N-distrib-+N : (n m k : Nat) -> (n +N m) *N k == n *N k +N m *N k
-*N-distrib-+N = {!!}
+*N-distrib-+N zero m k = refl _
+*N-distrib-+N (suc n) m k rewrite *N-distrib-+N n m k = ==-symm (+N-assoc k _ _)
 
 -- use *N-distrib-+N
 *N-assoc : (n m k : Nat) -> (n *N m) *N k == n *N (m *N k)
-*N-assoc = {!!}
+*N-assoc zero m k = refl _
+*N-assoc (suc n) m k rewrite *N-distrib-+N m (n *N m) k | *N-assoc n m k = refl _
+
+*N-right-zero : (n : Nat) -> zero == n *N zero
+*N-right-zero zero = refl _
+*N-right-zero (suc n) = *N-right-zero n
+
+*N-right-suc : (n m : Nat) -> m +N m *N n == m *N suc n
+*N-right-suc n zero = refl _
+*N-right-suc n (suc m) rewrite ==-symm (*N-right-suc n m) |
+                               ==-symm (+N-assoc m n (m *N n)) |
+                               ==-symm (+N-assoc n m (m *N n)) |
+                               +N-commut n m = refl _
+
 
 -- figure out what lemmas you need
 *N-commut : (n m : Nat) -> n *N m == m *N n
-*N-commut = {!!}
+*N-commut zero m = *N-right-zero m
+*N-commut (suc n) m rewrite *N-commut n m = *N-right-suc n m
 
 length-+L-distrib : {A : Set} -> (xs ys : List A) -> length (xs +L ys) == length xs +N length ys
-length-+L-distrib = {!!}
+length-+L-distrib [] ys = refl _
+length-+L-distrib (x ,- xs) ys rewrite length-+L-distrib xs ys = refl _
 
 vecToList : {A : Set} {n : Nat} -> Vec A n -> List A
-vecToList = ?
+vecToList [] = []
+vecToList (x ,- v) = x ,- vecToList v
 
 vecToList-listToVec-id : {A : Set} -> (xs : List A) -> vecToList (snd (listToVec xs)) == xs
-vecToList-listToVec-id = ?
+vecToList-listToVec-id [] = refl _
+vecToList-listToVec-id (x ,- xs) rewrite vecToList-listToVec-id xs = refl _
 
 vTake : {A : Set} {m n : Nat} -> n <= m -> Vec A m -> Vec A n
-vTake = ?
+vTake ozero _ = []
+vTake (osuc p) (x ,- xs) = x ,- vTake p xs
 
 -- you need to have implemented <=-refl before this
 vTake-id : {A : Set} (n : Nat) (v : Vec A n) -> vTake (<=-refl n) v == v
-vTake-id = ?
+vTake-id zero [] = refl _
+vTake-id (suc n) (x ,- xs) rewrite vTake-id n xs = refl _
 
 -- m - n
 -- d for difference
 difference<= : (m n : Nat) -> n <= m -> Nat >< \d -> m == n +N d
-difference<= = {!!}
+difference<= m .0 ozero = m , refl m
+difference<= (suc m) (suc n) (osuc p) with difference<= m n p
+... | d , q rewrite q = d , refl _
 
 -- naively reverse a list, by appending at the end
 reverse : {A : Set} -> List A -> List A
-reverse = {!!}
+reverse [] = []
+reverse (x ,- l) = reverse l +L (x ,- [])
+
 
 _ : reverse (1 ,- 2 ,- 3 ,- []) == 3 ,- 2 ,- 1 ,- []
 _ = refl _
 
 -- might need +L-assoc here
 reverse-+L-distrib : {A : Set} (xs ys : List A) -> reverse (xs +L ys) == reverse ys +L reverse xs
-reverse-+L-distrib = {!!}
+reverse-+L-distrib [] ys = ==-symm (+L-right-id (reverse ys))
+reverse-+L-distrib (x ,- xs) ys rewrite reverse-+L-distrib xs ys = +L-assoc (reverse ys) _ _
 
 -- might need reverse-+L-distrib here
 reverse-involut : {A : Set} (xs : List A) -> reverse (reverse xs) == xs
-reverse-involut = {!!}
+reverse-involut [] = refl _
+reverse-involut (x ,- xs) rewrite reverse-+L-distrib (reverse xs) (x ,- []) |
+                                  reverse-involut xs = refl _
 
 -- helper for the linear reverse
 -- accumulates the elements of first list, one by one, at the front of the second
 -- like how we traditionally implement a linear reverse
 -- see the examples below
 go : {A : Set} -> List A -> List A -> List A
-go = {!!}
+go [] ys = ys
+go (x ,- xs) ys = go xs (x ,- ys)
 
 _ : go (1 ,- 2 ,- []) [] == 2 ,- 1 ,- []
 _ = refl _
@@ -291,37 +328,46 @@ _ = refl _
 _ : go (1 ,- 2 ,- []) (4 ,- 5 ,- []) == 2 ,- 1 ,- 4 ,- 5 ,- []
 _ = refl _
 
+
 -- implement an O(n) reverse by using go
 linear-reverse : {A : Set} -> List A -> List A
-linear-reverse = {!!}
+linear-reverse xs = go xs []
 
 -- a lemma that will be useful for proving that linear-reverse acts the same as reverse
 go-reverse : {A : Set} (xs ys : List A) -> go xs ys == reverse xs +L ys
-go-reverse = {!!}
+go-reverse [] ys = refl _
+go-reverse (x ,- xs) ys rewrite go-reverse xs (x ,- ys) |
+                                +L-assoc (reverse xs) (x ,- []) ys = refl _
 
 linear-reverse-is-reverse : {A : Set} (xs : List A) -> linear-reverse xs == reverse xs
-linear-reverse-is-reverse = {!!}
+linear-reverse-is-reverse [] = refl _
+linear-reverse-is-reverse (x ,- xs) rewrite linear-reverse-is-reverse xs = go-reverse xs (x ,- [])
 
 map : {A B : Set} -> (A -> B) -> List A -> List B
-map = {!!}
+map f [] = []
+map f (x ,- xs) = f x ,- map f xs
 
 map-+L-distrib : {A B : Set} -> (f : A -> B) -> (xs ys : List A) -> map f (xs +L ys) == map f xs +L map f ys
-map-+L-distrib = {!!}
+map-+L-distrib f [] ys = refl _
+map-+L-distrib f (x ,- xs) ys rewrite map-+L-distrib f xs ys = refl _
 
 id : {A : Set} -> A -> A
 id x = x
 
 map-id : {A : Set} (xs : List A) -> map id xs == xs
-map-id = {!!}
+map-id [] = refl _
+map-id (x ,- xs) rewrite map-id xs = refl _
 
 _<<_ : {A B C : Set} -> (B -> C) -> (A -> B) -> A -> C
 (f << g) x = f (g x)
 
 map-compose : {A B C : Set} -> (f : B -> C) (g : A -> B) -> (xs : List A) -> map (f << g) xs == map f (map g xs)
-map-compose = {!!}
+map-compose f g [] = refl _
+map-compose f g (x ,- xs) rewrite map-compose f g xs = refl _
 
 foldr : {A B : Set} -> (A -> B -> B) -> B -> List A -> B
-foldr = {!!}
+foldr op nv [] = nv
+foldr op nv (x ,- xs) = op x (foldr op nv xs)
 
 foldr-+L :
   {A B : Set}
@@ -329,19 +375,21 @@ foldr-+L :
   (xs ys : List A)
   (v : B) ->
   foldr f (foldr f v ys) xs == foldr f v (xs +L ys)
-foldr-+L = {!!}
+foldr-+L op [] ys nv = refl _
+foldr-+L op (x ,- xs) ys nv rewrite foldr-+L op xs ys nv = refl _
 
 map-foldr :
   {A B : Set}
   (f : A -> B)
   (xs : List A) ->
   map f xs == foldr (\x r -> f x ,- r) [] xs
-map-foldr = {!!}
+map-foldr f [] = refl _
+map-foldr f (x ,- xs) rewrite map-foldr f xs = refl _
 
 -- uh.. do trees?
 
 -- good example to show how rewrite is implemented, maybe
 -- but don't make students solve this
--- listToVec-vecToList-id : {A : Set} {n : Nat} -> (v : Vec A n) -> listToVec (vecToList v) == n , v
--- listToVec-vecToList-id = ?
--}
+listToVec-vecToList-id : {A : Set} {n : Nat} -> (v : Vec A n) -> listToVec (vecToList v) == n , v
+listToVec-vecToList-id [] = refl _
+listToVec-vecToList-id (x ,- xs) rewrite listToVec-vecToList-id xs = refl _
