@@ -398,24 +398,37 @@ listToVec-vecToList-id : {A : Set} {n : Nat} -> (v : Vec A n) -> listToVec (vecT
 listToVec-vecToList-id [] = refl
 listToVec-vecToList-id (x ,- xs) rewrite listToVec-vecToList-id xs = refl
 
-{-
 add-two-Even : (n m : Nat) -> Even m -> Even (n +N n +N m)
-add-two-Even = {!!}
+add-two-Even zero m p = p
+add-two-Even (suc n) m p rewrite +N-right-suc n (n +N m) = add-two-Even n m p
 
 *N-consecutive-Even : (n : Nat) -> Even (n *N suc n)
-*N-consecutive-Even = {!!}
+*N-consecutive-Even zero = <>
+*N-consecutive-Even (suc n) rewrite ==-symm (*N-right-suc (suc n) n)
+  = add-two-Even n (n *N suc n) (*N-consecutive-Even n)
 
 downFrom : Nat -> Nat
 downFrom zero = zero
 downFrom (suc n) = suc n +N downFrom n
 
 div2 : (n : Nat) -> Even n -> Nat
-div2 = {!!}
+div2 zero _ = zero
+div2 (suc (suc n)) p = div2 n p
 
 -- downFrom n == n * (n + 1) / 2
 -- 2 * (downFrom n) == n * (n + 1)
 downFrom-closed-form : (n : Nat) -> 2 *N downFrom n == n *N suc n
-downFrom-closed-form = {!!}
+downFrom-closed-form zero = refl
+downFrom-closed-form (suc n) rewrite +N-right-zero (n +N downFrom n)
+                                   | +N-right-suc (n +N downFrom n) (n +N downFrom n)
+                                   | ==-symm (*N-right-suc (suc n) n)
+                                   | +N-assoc n (downFrom n) (n +N downFrom n)
+                                   | ==-symm (+N-assoc (downFrom n) n (downFrom n))
+                                   | +N-commut (downFrom n) n
+                                   | +N-assoc n (downFrom n) (downFrom n)
+                                   | ==-symm (downFrom-closed-form n)
+                                   | +N-right-zero (downFrom n)
+                                     = refl
 
 -- "abuse" modules so we can have the same name datatype twice
 module listsplit where
@@ -451,11 +464,16 @@ module listsplit where
   partition :
     {A : Set} {P : A -> Set} -> Dec P -> (xs : List A) ->
       List A >< \nays ->
-      List A >< \yeas ->
-        nays <[ xs ]> yeas *
+      List A >< \ayes ->
+        nays <[ xs ]> ayes *
         All (\x -> P x -> Zero) nays *
-        All P yeas
-  partition p? xs = {!!}
+        All P ayes
+  partition p? [] = [] , [] , []split , <> , <>
+  partition p? (x ,- xs) with p? x | partition p? xs
+  ...                    | inl notp | nays , ayes , z , allnays , allayes
+                           = (x ,- nays) , ayes , left z , ((notp , allnays) , allayes)
+  ...                    | inr p    | nays , ayes , z , allnays , allayes
+                           = nays , (x ,- ayes) , (right z , (allnays , p , allayes))
 
 module natsplit where
   -- same idea as with lists
@@ -477,15 +495,36 @@ module natsplit where
   _ = left (left (left (right (right zero))))
 
   -- use the splitting to guide you on how to merge the two vectors
+  merge : {A : Set} {l m r : Nat} ->
+    l <[ m ]> r -> Vec A l -> Vec A r ->
+    Vec A m
+  merge zero [] [] = []
+  merge (left spl) (x ,- xs) ys  = x ,- merge spl xs ys
+  merge (right spl) xs (x ,- ys) = x ,- merge spl xs ys
+
   _>[_]<_ :
     {A : Set} {l m r : Nat} ->
     Vec A l -> l <[ m ]> r -> Vec A r ->
     Vec A m
-  xs >[ spl ]< ys = {!!}
+  xs >[ spl ]< ys = merge spl xs ys
+
+{-
+  -- alternative direct definition, note the clause order, right spl case needs to be first
+  _>[_]<_ :
+    {A : Set} {l m r : Nat} ->
+    Vec A l -> l <[ m ]> r -> Vec A r ->
+    Vec A m
+  xs >[ right spl ]< (x ,- ys) = x ,- (xs >[ spl ]< ys)
+  [] >[ zero ]< [] = []
+  (x ,- xs) >[ left spl ]< ys = x ,- (xs >[ spl ]< ys)
+-}
 
   split : {A : Set} (l m r : Nat) (spl : l <[ m ]> r) (xs : Vec A m) ->
     Vec A l >< \lefts ->
     Vec A r >< \rights ->
       (lefts >[ spl ]< rights) == xs
-  split l m r spl xs = {!!}
--}
+  split .0 .0 .0 zero [] = [] , [] , refl
+  split .(suc _) .(suc _) r (left spl) (x ,- xs) with split _ _ r spl xs
+  ... | lefts , rights , refl = (x ,- lefts) , rights , refl
+  split l .(suc _) .(suc _) (right spl) (x ,- xs) with split l _ _ spl xs
+  ... | lefts , rights , refl = lefts , (x ,- rights) , refl
