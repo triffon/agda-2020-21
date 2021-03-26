@@ -471,9 +471,9 @@ module listsplit where
   partition p? [] = [] , [] , []split , <> , <>
   partition p? (x ,- xs) with p? x | partition p? xs
   ...                    | inl notp | nays , ayes , z , allnays , allayes
-                           = (x ,- nays) , ayes , left z , ((notp , allnays) , allayes)
+                           = (x ,- nays) , ayes , left z , (notp , allnays) , allayes
   ...                    | inr p    | nays , ayes , z , allnays , allayes
-                           = nays , (x ,- ayes) , (right z , (allnays , p , allayes))
+                           = nays , (x ,- ayes) , right z , (allnays , p , allayes)
 
 module natsplit where
   -- same idea as with lists
