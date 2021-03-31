@@ -195,22 +195,18 @@ listToVec (x ,- xs) =
 
 <=-antisym : {n m : Nat} -> n <= m -> m <= n -> n == m
 <=-antisym ozero ozero = refl
-<=-antisym (osuc p) (osuc q) rewrite <=-antisym p q = refl
+<=-antisym (osuc n<=m) (osuc m<=n) rewrite <=-antisym n<=m m<=n = refl
 
-<=-mono-left-+ : {n m : Nat} (k : Nat) -> n <= m -> k +N n <= k +N m
-<=-mono-left-+ zero p = p
-<=-mono-left-+ (suc k) p = osuc (<=-mono-left-+ k p)
-
-<=-right-+ : {m : Nat} (n : Nat) -> n <= m +N n
-<=-right-+ zero = ozero
--- can we do it smoothly without explicitating m?
-<=-right-+ {m} (suc n) rewrite +N-right-suc m n = osuc (<=-right-+ n)
+<=-mono-left-+N : {n m : Nat} (k : Nat) -> n <= m -> k +N n <= k +N m
+<=-mono-left-+N zero p = p
+<=-mono-left-+N (suc k) p = osuc (<=-mono-left-+N k p)
 
 -- you might need a lemma here
-<=-mono-right-+ : {n m : Nat} (k : Nat) -> n <= m -> n +N k <= m +N k
--- <=-mono-right-+ {n} {m} k rewrite +N-commut n k | +N-commut m k = <=-mono-left-+ {n} {m} k
-<=-mono-right-+ k ozero = <=-right-+ k
-<=-mono-right-+ k (osuc p) = osuc (<=-mono-right-+ k p)
+<=-mono-right-+N : {n m : Nat} (k : Nat) -> n <= m -> n +N k <= m +N k
+<=-mono-right-+N {n} {m} k p
+  rewrite +N-commut n k
+  rewrite +N-commut m k
+  = <=-mono-left-+N k p
 
 -- multiplication using repeated addition
 _*N_ : Nat -> Nat -> Nat
@@ -226,77 +222,104 @@ infixr 40 _*N_
 -- multiplication distributes over addition
 *N-distrib-+N : (n m k : Nat) -> (n +N m) *N k == n *N k +N m *N k
 *N-distrib-+N zero m k = refl
-*N-distrib-+N (suc n) m k rewrite *N-distrib-+N n m k = ==-symm (+N-assoc k _ _)
+*N-distrib-+N (suc n) m k =
+  k +N (n +N m) *N k
+    =[ ap (k +N_) (*N-distrib-+N n m k) >=
+  k +N n *N k +N m *N k
+    =< +N-assoc k (n *N k) (m *N k) ]=
+  (k +N n *N k) +N m *N k
+    QED
+
+--  rewrite *N-distrib-+N n m k
+--  = ==-symm (+N-assoc k (n *N k) (m *N k))
+-- k +N ((n *N k) +N (m *N k)) == (k +N (n *N k)) +N (m *N k)
 
 -- use *N-distrib-+N
 *N-assoc : (n m k : Nat) -> (n *N m) *N k == n *N (m *N k)
 *N-assoc zero m k = refl
-*N-assoc (suc n) m k rewrite *N-distrib-+N m (n *N m) k | *N-assoc n m k = refl
+*N-assoc (suc n) m k =
+  (m +N n *N m) *N k
+    =[ *N-distrib-+N m (n *N m) k >=
+  m *N k +N (n *N m) *N k --(m +N n *N m) *N k
+    =[ ap ((m *N k +N_)) (*N-assoc n m k) >=
+  m *N k +N n *N m *N k
+    QED
 
 *N-right-zero : (n : Nat) -> zero == n *N zero
 *N-right-zero zero = refl
 *N-right-zero (suc n) = *N-right-zero n
 
-*N-right-suc : (n m : Nat) -> m +N m *N n == m *N suc n
-*N-right-suc n zero = refl
-*N-right-suc n (suc m) rewrite ==-symm (*N-right-suc n m) |
-                               ==-symm (+N-assoc m n (m *N n)) |
-                               ==-symm (+N-assoc n m (m *N n)) |
-                               +N-commut n m = refl
+*N-right-suc : (n m : Nat) -> n +N n *N m == n *N suc m
+*N-right-suc zero m = refl
+*N-right-suc (suc n) m
+  rewrite ==-symm (*N-right-suc n m)
+  -- Goal: n +N (m +N (n *N m)) == m +N (n +N (n *N m))
+  rewrite ==-symm (+N-assoc n m (n *N m))
+  -- Goal: (n +N m) +N n *N m == m +N n +N n *N m
+  rewrite +N-commut n m
+  -- Goal: (m +N n) +N n *N m == m +N n +N n *N m
+  rewrite +N-assoc m n (n *N m)
+  = ap suc refl
 
 
 -- figure out what lemmas you need
 *N-commut : (n m : Nat) -> n *N m == m *N n
 *N-commut zero m = *N-right-zero m
-*N-commut (suc n) m rewrite *N-commut n m = *N-right-suc n m
+*N-commut (suc n) m rewrite *N-commut n m = *N-right-suc m n
 
 length-+L-distrib : {A : Set} -> (xs ys : List A) -> length (xs +L ys) == length xs +N length ys
 length-+L-distrib [] ys = refl
-length-+L-distrib (x ,- xs) ys rewrite length-+L-distrib xs ys = refl
+length-+L-distrib (x ,- xs) ys = ap suc (length-+L-distrib xs ys)
 
 vecToList : {A : Set} {n : Nat} -> Vec A n -> List A
 vecToList [] = []
-vecToList (x ,- v) = x ,- vecToList v
+vecToList (x ,- xs) = x ,- vecToList xs
 
 vecToList-listToVec-id : {A : Set} -> (xs : List A) -> vecToList (snd (listToVec xs)) == xs
 vecToList-listToVec-id [] = refl
-vecToList-listToVec-id (x ,- xs) rewrite vecToList-listToVec-id xs = refl
+vecToList-listToVec-id (x ,- xs) = ap (x ,-_) (vecToList-listToVec-id xs)
 
 vTake : {A : Set} {m n : Nat} -> n <= m -> Vec A m -> Vec A n
-vTake ozero _ = []
-vTake (osuc p) (x ,- xs) = x ,- vTake p xs
+vTake ozero xs = []
+vTake (osuc n<=m) (x ,- xs) = x ,- vTake n<=m xs
 
 -- you need to have implemented <=-refl before this
-vTake-id : {A : Set} (n : Nat) (v : Vec A n) -> vTake (<=-refl n) v == v
-vTake-id zero [] = refl
-vTake-id (suc n) (x ,- xs) rewrite vTake-id n xs = refl
+vTake-id : {A : Set} {n : Nat} (v : Vec A n) -> vTake (<=-refl n) v == v
+vTake-id [] = refl
+vTake-id (x ,- xs) = ap (x ,-_ ) (vTake-id xs)
+
 
 -- m - n
 -- d for difference
 difference<= : (m n : Nat) -> n <= m -> Nat >< \d -> m == n +N d
-difference<= m .0 ozero = m , refl
-difference<= (suc m) (suc n) (osuc p) with difference<= m n p
-... | d , q rewrite q = d , refl
+difference<= m zero ozero = m , refl
+difference<= (suc m) (suc n) (osuc n<=m) with difference<= m n n<=m
+... | d , refl = d , refl
 
 -- naively reverse a list, by appending at the end
 reverse : {A : Set} -> List A -> List A
 reverse [] = []
-reverse (x ,- l) = reverse l +L (x ,- [])
-
+reverse (x ,- xs) = reverse xs +L (x ,- [])
 
 _ : reverse (1 ,- 2 ,- 3 ,- []) == 3 ,- 2 ,- 1 ,- []
 _ = refl
 
+
 -- might need +L-assoc here
 reverse-+L-distrib : {A : Set} (xs ys : List A) -> reverse (xs +L ys) == reverse ys +L reverse xs
-reverse-+L-distrib [] ys = ==-symm (+L-right-id (reverse ys))
-reverse-+L-distrib (x ,- xs) ys rewrite reverse-+L-distrib xs ys = +L-assoc (reverse ys) _ _
+reverse-+L-distrib [] ys rewrite +L-right-id (reverse ys) = refl
+reverse-+L-distrib (x ,- xs) ys
+  -- reverse (xs +L ys) +L (x ,- []) == reverse ys +L reverse xs +L (x ,- [])
+  rewrite reverse-+L-distrib xs ys
+  -- (reverse ys +L reverse xs) +L (x ,- []) == reverse ys +L reverse xs +L (x ,- [])
+  = +L-assoc (reverse ys) (reverse xs) (x ,- [])
 
 -- might need reverse-+L-distrib here
 reverse-involut : {A : Set} (xs : List A) -> reverse (reverse xs) == xs
 reverse-involut [] = refl
-reverse-involut (x ,- xs) rewrite reverse-+L-distrib (reverse xs) (x ,- []) |
-                                  reverse-involut xs = refl
+reverse-involut (x ,- xs)
+  rewrite reverse-+L-distrib (reverse xs) (x ,- [])
+  = ap (x ,-_) (reverse-involut xs)
 
 -- helper for the linear reverse
 -- accumulates the elements of first list, one by one, at the front of the second
@@ -306,12 +329,12 @@ go : {A : Set} -> List A -> List A -> List A
 go [] ys = ys
 go (x ,- xs) ys = go xs (x ,- ys)
 
+
 _ : go (1 ,- 2 ,- []) [] == 2 ,- 1 ,- []
 _ = refl
 
 _ : go (1 ,- 2 ,- []) (4 ,- 5 ,- []) == 2 ,- 1 ,- 4 ,- 5 ,- []
 _ = refl
-
 
 -- implement an O(n) reverse by using go
 linear-reverse : {A : Set} -> List A -> List A
@@ -320,12 +343,14 @@ linear-reverse xs = go xs []
 -- a lemma that will be useful for proving that linear-reverse acts the same as reverse
 go-reverse : {A : Set} (xs ys : List A) -> go xs ys == reverse xs +L ys
 go-reverse [] ys = refl
-go-reverse (x ,- xs) ys rewrite go-reverse xs (x ,- ys) |
-                                +L-assoc (reverse xs) (x ,- []) ys = refl
+go-reverse (x ,- xs) ys
+  rewrite go-reverse xs (x ,- ys)
+  = ==-symm (+L-assoc (reverse xs) (x ,- []) ys)
 
 linear-reverse-is-reverse : {A : Set} (xs : List A) -> linear-reverse xs == reverse xs
 linear-reverse-is-reverse [] = refl
-linear-reverse-is-reverse (x ,- xs) rewrite linear-reverse-is-reverse xs = go-reverse xs (x ,- [])
+linear-reverse-is-reverse (x ,- xs) = go-reverse xs (x ,- [])
+
 
 map : {A B : Set} -> (A -> B) -> List A -> List B
 map f [] = []
@@ -333,25 +358,26 @@ map f (x ,- xs) = f x ,- map f xs
 
 map-+L-distrib : {A B : Set} -> (f : A -> B) -> (xs ys : List A) -> map f (xs +L ys) == map f xs +L map f ys
 map-+L-distrib f [] ys = refl
-map-+L-distrib f (x ,- xs) ys rewrite map-+L-distrib f xs ys = refl
+map-+L-distrib f (x ,- xs) ys = ap (f x ,-_) (map-+L-distrib f xs ys)
 
 id : {A : Set} -> A -> A
 id x = x
 
 map-id : {A : Set} (xs : List A) -> map id xs == xs
 map-id [] = refl
-map-id (x ,- xs) rewrite map-id xs = refl
+map-id (x ,- xs) = ap (x ,-_) (map-id xs)
 
 _<<_ : {A B C : Set} -> (B -> C) -> (A -> B) -> A -> C
 (f << g) x = f (g x)
 
+-- theorems for free - philip wadler
 map-compose : {A B C : Set} -> (f : B -> C) (g : A -> B) -> (xs : List A) -> map (f << g) xs == map f (map g xs)
 map-compose f g [] = refl
-map-compose f g (x ,- xs) rewrite map-compose f g xs = refl
+map-compose f g (x ,- xs) = ap (f (g x) ,-_) (map-compose f g xs)
 
 foldr : {A B : Set} -> (A -> B -> B) -> B -> List A -> B
-foldr op nv [] = nv
-foldr op nv (x ,- xs) = op x (foldr op nv xs)
+foldr f v [] = v
+foldr f v (x ,- xs) = f x (foldr f v xs)
 
 foldr-+L :
   {A B : Set}
@@ -359,8 +385,8 @@ foldr-+L :
   (xs ys : List A)
   (v : B) ->
   foldr f (foldr f v ys) xs == foldr f v (xs +L ys)
-foldr-+L op [] ys nv = refl
-foldr-+L op (x ,- xs) ys nv rewrite foldr-+L op xs ys nv = refl
+foldr-+L f [] ys v = refl
+foldr-+L f (x ,- xs) ys v = ap (f x) (foldr-+L f xs ys v)
 
 map-foldr :
   {A B : Set}
@@ -368,23 +394,26 @@ map-foldr :
   (xs : List A) ->
   map f xs == foldr (\x r -> f x ,- r) [] xs
 map-foldr f [] = refl
-map-foldr f (x ,- xs) rewrite map-foldr f xs = refl
+map-foldr f (x ,- xs) = ap (f x ,-_) (map-foldr f xs)
+
 
 -- uh.. do trees?
 
 -- good example to show how rewrite is implemented, maybe
 -- but don't make students solve this
-listToVec-vecToList-id : {A : Set} {n : Nat} -> (v : Vec A n) -> listToVec (vecToList v) == (n , v)
-listToVec-vecToList-id [] = refl
-listToVec-vecToList-id (x ,- xs) rewrite listToVec-vecToList-id xs = refl
+-- listToVec-vecToList-id : {A : Set} {n : Nat} -> (v : Vec A n) -> listToVec (vecToList v) == n , v
+-- listToVec-vecToList-id = ?
 
 add-two-Even : (n m : Nat) -> Even m -> Even (n +N n +N m)
 add-two-Even zero m p = p
-add-two-Even (suc n) m p rewrite +N-right-suc n (n +N m) = add-two-Even n m p
+add-two-Even (suc n) m p
+  rewrite +N-right-suc n (n +N m)
+  = add-two-Even n m p
 
 *N-consecutive-Even : (n : Nat) -> Even (n *N suc n)
 *N-consecutive-Even zero = <>
-*N-consecutive-Even (suc n) rewrite ==-symm (*N-right-suc (suc n) n)
+*N-consecutive-Even (suc n)
+  rewrite ==-symm (*N-right-suc n (suc n))
   = add-two-Even n (n *N suc n) (*N-consecutive-Even n)
 
 downFrom : Nat -> Nat
@@ -392,23 +421,22 @@ downFrom zero = zero
 downFrom (suc n) = suc n +N downFrom n
 
 div2 : (n : Nat) -> Even n -> Nat
-div2 zero _ = zero
-div2 (suc (suc n)) p = div2 n p
+div2 zero <> = zero
+div2 (suc (suc n)) evenn = suc (div2 n evenn)
 
 -- downFrom n == n * (n + 1) / 2
 -- 2 * (downFrom n) == n * (n + 1)
-downFrom-closed-form : (n : Nat) -> 2 *N downFrom n == n *N suc n
+downFrom-closed-form : (n : Nat) -> downFrom n +N downFrom n == n *N suc n
 downFrom-closed-form zero = refl
-downFrom-closed-form (suc n) rewrite +N-right-zero (n +N downFrom n)
-                                   | +N-right-suc (n +N downFrom n) (n +N downFrom n)
-                                   | ==-symm (*N-right-suc (suc n) n)
-                                   | +N-assoc n (downFrom n) (n +N downFrom n)
-                                   | ==-symm (+N-assoc (downFrom n) n (downFrom n))
-                                   | +N-commut (downFrom n) n
-                                   | +N-assoc n (downFrom n) (downFrom n)
-                                   | ==-symm (downFrom-closed-form n)
-                                   | +N-right-zero (downFrom n)
-                                     = refl
+downFrom-closed-form (suc n)
+  rewrite +N-right-suc (n +N downFrom n) (n +N downFrom n)
+  rewrite +N-assoc n (downFrom n) (n +N downFrom n)
+  rewrite ==-symm (+N-assoc (downFrom n) n (downFrom n))
+  rewrite +N-commut (downFrom n) n
+  rewrite +N-assoc n (downFrom n) (downFrom n)
+  rewrite downFrom-closed-form n
+  rewrite *N-right-suc n (suc n)
+  = refl
 
 -- "abuse" modules so we can have the same name datatype twice
 module listsplit where
@@ -444,16 +472,14 @@ module listsplit where
   partition :
     {A : Set} {P : A -> Set} -> Dec P -> (xs : List A) ->
       List A >< \nays ->
-      List A >< \ayes ->
-        nays <[ xs ]> ayes *
+      List A >< \yeas ->
+        nays <[ xs ]> yeas *
         All (\x -> P x -> Zero) nays *
-        All P ayes
+        All P yeas
   partition p? [] = [] , [] , []split , <> , <>
-  partition p? (x ,- xs) with p? x | partition p? xs
-  ...                    | inl notp | nays , ayes , z , allnays , allayes
-                           = (x ,- nays) , ayes , left z , (notp , allnays) , allayes
-  ...                    | inr p    | nays , ayes , z , allnays , allayes
-                           = nays , (x ,- ayes) , right z , allnays , p , allayes
+  partition p? (x ,- xs) with partition p? xs | p? x
+  ... | nays , yeas , split , p , q | inl notPx = (x ,- nays) , yeas , left split , (notPx , p) , q
+  ... | nays , yeas , split , p , q | inr Px = nays , x ,- yeas , right split , p , (Px , q)
 
 module natsplit where
   -- same idea as with lists
@@ -474,13 +500,17 @@ module natsplit where
   _ : 3 <[ 5 ]> 2
   _ = left (left (left (right (right zero))))
 
+  _ : 3 <[ 5 ]> 2
+  _ = left (right (left (right (left zero))))
+
   -- use the splitting to guide you on how to merge the two vectors
-  merge : {A : Set} {l m r : Nat} ->
+  merge :
+    {A : Set} {l m r : Nat} ->
     l <[ m ]> r -> Vec A l -> Vec A r ->
     Vec A m
-  merge zero [] [] = []
-  merge (left spl) (x ,- xs) ys  = x ,- merge spl xs ys
-  merge (right spl) xs (x ,- ys) = x ,- merge spl xs ys
+  merge zero xs ys = []
+  merge (left spl) (x ,- xs) ys = x ,- merge spl xs ys
+  merge (right spl) xs (y ,- ys) = y ,- merge spl xs ys
 
   _>[_]<_ :
     {A : Set} {l m r : Nat} ->
@@ -488,23 +518,15 @@ module natsplit where
     Vec A m
   xs >[ spl ]< ys = merge spl xs ys
 
-{-
-  -- alternative direct definition, note the clause order, right spl case needs to be first
-  _>[_]<_ :
-    {A : Set} {l m r : Nat} ->
-    Vec A l -> l <[ m ]> r -> Vec A r ->
-    Vec A m
-  xs >[ right spl ]< (x ,- ys) = x ,- (xs >[ spl ]< ys)
-  [] >[ zero ]< [] = []
-  (x ,- xs) >[ left spl ]< ys = x ,- (xs >[ spl ]< ys)
--}
-
+  -- splitAt 2 [1,2,3,4,5] == ([1,2,3], [4,5])
+  -- split (left (right (left (right (left zero))))) [1,2,3,4,5]
+  -- [1,3,5] [2,4]
   split : {A : Set} (l m r : Nat) (spl : l <[ m ]> r) (xs : Vec A m) ->
     Vec A l >< \lefts ->
     Vec A r >< \rights ->
       (lefts >[ spl ]< rights) == xs
   split .0 .0 .0 zero [] = [] , [] , refl
-  split .(suc _) .(suc _) r (left spl) (x ,- xs) with split _ _ r spl xs
+  split (suc l) (suc m) r (left spl) (x ,- xs) with split l m r spl xs
   ... | lefts , rights , refl = (x ,- lefts) , rights , refl
-  split l .(suc _) .(suc _) (right spl) (x ,- xs) with split l _ _ spl xs
+  split l (suc m) (suc r) (right spl) (x ,- xs) with split l m r spl xs
   ... | lefts , rights , refl = lefts , (x ,- rights) , refl
