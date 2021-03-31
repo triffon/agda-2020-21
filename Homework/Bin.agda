@@ -125,20 +125,16 @@ _ = refl
 +B-right-end (b I) = refl
 
 +B-left-suc : (b v : Bin) -> suc b +B v == suc (b +B v)
-+B-left-suc end end = refl
++B-left-suc b end rewrite +B-right-end (suc b) | +B-right-end b = refl
 +B-left-suc end (v O) = refl
 +B-left-suc end (v I) = refl
-+B-left-suc (b O) end = refl
 +B-left-suc (b O) (v O) = refl
 +B-left-suc (b O) (v I) = refl
-+B-left-suc (b I) end = refl
 +B-left-suc (b I) (v O) rewrite +B-left-suc b v = refl
 +B-left-suc (b I) (v I) rewrite +B-left-suc b v = refl
 
 +B-right-suc : (b v : Bin) -> b +B suc v == suc (b +B v)
-+B-right-suc end end = refl
-+B-right-suc end (v O) = refl
-+B-right-suc end (v I) = refl
++B-right-suc end v = refl
 +B-right-suc (b O) end rewrite +B-right-end b = refl
 +B-right-suc (b O) (v O) = refl
 +B-right-suc (b O) (v I) rewrite +B-right-suc b v = refl
