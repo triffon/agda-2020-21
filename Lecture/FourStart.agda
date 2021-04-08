@@ -113,7 +113,7 @@ module
   -- and see where you get stuck
   appendKeyed : {lo hi : Bound} -> (k : Key) -> OList lo (inKey k) -> OList (inKey k) hi -> OList lo hi
   appendKeyed k (emptyOL lo<=k) rs = consOL k lo<=k rs
-  appendKeyed k (consOL x lo<=x ls) rs = consOL x lo<=x (appendKeyed k ls rs) 
+  appendKeyed k (consOL x lo<=x ls) rs = consOL x lo<=x (appendKeyed k ls rs)
 
   flatten : {lo hi : Bound} -> BST lo hi -> OList lo hi
   flatten (empty lo<=hi) = emptyOL lo<=hi
@@ -239,7 +239,7 @@ module listy {A : Set} {_==?_ : (x y : A) -> Dec (x == y)} where
   +L-monoL-Sub (x ,- xs) ys = s-cons (+L-monoL-Sub xs ys)
 
   +L-monoR-Sub : (xs ys : List A) -> xs Sub (ys +L xs)
-  +L-monoR-Sub xs [] = Sub-refl xs 
+  +L-monoR-Sub xs [] = Sub-refl xs
   +L-monoR-Sub xs (x ,- ys) = s-skip (+L-monoR-Sub xs ys)
 
   Sub-all-In : {xs ys : List A} -> xs Sub ys -> {x : A} -> x In xs -> x In ys
@@ -277,9 +277,18 @@ module listy {A : Set} {_==?_ : (x y : A) -> Dec (x == y)} where
   Sub-trans-assoc (s-skip sub1) (s-cons sub2) (s-cons sub3) rewrite Sub-trans-assoc sub1 sub2 sub3 = refl
   Sub-trans-assoc sub1          sub2          (s-skip sub3) rewrite Sub-trans-assoc sub1 sub2 sub3 = refl
 
-{-
+{- може ли някак без лема? -}
+suc-== : {n m : Nat} -> suc n == suc m -> n == m
+suc-== refl = refl
+
 decNatEq : (n m : Nat) -> Dec (n == m)
-decNatEq = {!!}
+decNatEq zero zero = inr refl
+decNatEq zero (suc m) = inl (\ ())
+decNatEq (suc n) zero = inl (\ ())
+decNatEq (suc n) (suc m) with decNatEq n m
+decNatEq (suc n) (suc m) | inl x = inl (\y -> x (suc-== y))
+decNatEq (suc n) (suc m) | inr x = inr (ap suc x)
+
 
 open listy {Nat} {decNatEq}
 
@@ -317,4 +326,3 @@ _ = s-cons (s-skip (s-cons s[]))
 332notSub32 : 3 ,- 3 ,- 2 ,- [] Sub 3 ,- 2 ,- [] -> Zero
 332notSub32 (listy.s-cons (listy.s-skip ()))
 332notSub32 (listy.s-skip (listy.s-skip ()))
--}
