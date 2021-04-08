@@ -142,8 +142,6 @@ two = node 2 one three
 Dec : (A : Set) -> Set
 Dec A = (A -> Zero) + A
 
-{-
-
 -- used a module to introduce global vars
 -- in here, you can compare values for equality with _==?_
 -- in all proofs for functions defined with a `with`
@@ -158,30 +156,54 @@ module listy {A : Set} {_==?_ : (x y : A) -> Dec (x == y)} where
     there : {y : A} {xs : List A} -> x In xs -> x In (y ,- xs)
 
   +L-monoL-In : {y : A} {ys : List A} -> (xs : List A) -> y In ys -> y In xs +L ys
-  +L-monoL-In = {!!}
+  +L-monoL-In [] yInys = yInys
+  +L-monoL-In (_ ,- xs) yInys = there (+L-monoL-In xs yInys)
 
   +L-splits-In : {x : A} (xs ys : List A) -> x In xs +L ys -> x In xs + x In ys
-  +L-splits-In = {!!}
+  +L-splits-In [] ys p = inr p
+  +L-splits-In (x ,- xs) ys here = inl here
+  +L-splits-In (x ,- xs) ys (there p) with +L-splits-In xs ys p
+  ... | inl xInxs = inl (there xInxs)
+  ... | inr yInys = inr yInys
 
   notIn[] : {x : A} -> x In [] -> Zero
-  notIn[] = {!!}
+  notIn[] ()
 
   nowhere : {x y : A} {ys : List A} -> (x == y -> Zero) -> (x In ys -> Zero) -> x In y ,- ys -> Zero
-  nowhere = {!!}
+  nowhere x!=y xNotInys here = x!=y refl
+  nowhere x!=y xNotInys (there p) = xNotInys p
 
   -- if there is one, return the first x in the list
   find : (x : A) (xs : List A) -> Dec (x In xs)
-  find = {!!}
+  find x [] = inl notIn[]
+  find x (y ,- ys) with x ==? y
+  find x (y ,- ys) | inl x!=y with find x ys
+  find x (y ,- ys) | inl x!=y | inl xNotInys = inl (nowhere x!=y xNotInys)
+  find x (y ,- ys) | inl x!=y | inr xInys    = inr (there xInys)
+  find x (y ,- ys) | inr refl = inr here
 
   -- delete all the occurrences of x in the list
   remove : (x : A) -> (xs : List A) -> List A
-  remove = {!!}
+  remove _ [] = []
+  remove x (y ,- ys) with x ==? y
+  ... | inl _ = y ,- remove x ys
+  ... | inr _ = remove x ys
 
   remove-removes : (xs : List A) -> (x : A) -> x In remove x xs -> Zero
-  remove-removes = {!!}
+  remove-removes (y ,- xs) x p with x ==? y
+  remove-removes (y ,- xs) .y here     | inl x!=y = x!=y refl
+  remove-removes (y ,- xs) x (there p) | inl x!=y = remove-removes xs x p
+  ...                                  | inr refl = remove-removes xs x p
 
   remove-keeps : (xs : List A) (y : A) -> y In xs -> (x : A) -> (x == y -> Zero) -> y In remove x xs
-  remove-keeps = {!!}
+  remove-keeps (z ,- xs) .z here x x!=y with x ==? z
+  ... | inl _  = here
+  ... | inr refl = zero-elim (x!=y refl)
+  remove-keeps (z ,- xs) y (there yInxs) x x!=y with x ==? z
+  ... | inl x!=z = there (remove-keeps xs y yInxs x x!=y)
+  ... | inr refl = remove-keeps xs y yInxs x x!=y
+
+{-
 
   -- xs Sub ys - xs is a subsequence of ys
   -- [] Sub []
