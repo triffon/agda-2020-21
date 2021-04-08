@@ -46,10 +46,13 @@ _ : LeqNat 3 5
 _ = <>
 
 decLeqNat : (n m : Nat) -> LeqNat n m + LeqNat m n
-decLeqNat n m = {!!}
+decLeqNat zero _  = inl <>
+decLeqNat (suc n) zero = inr <>
+decLeqNat (suc n) (suc m) = decLeqNat n m
 
 <=-LeqNat : {n m : Nat} -> n <= m -> LeqNat n m
-<=-LeqNat p = {!!}
+<=-LeqNat ozero = <>
+<=-LeqNat (osuc p) = <=-LeqNat p
 
 module
   Sorting
@@ -83,14 +86,25 @@ module
     {lo hi : Bound} (k : Key) ->
     LeqBound lo (inKey k) -> LeqBound (inKey k) hi ->
     BST lo hi -> BST lo hi
-  insert = {!!}
+  insert k lb ub (empty _) = node k (empty lb) (empty ub)
+  insert k lb ub (node r lt rt) with k <=? r
+  ... | inl k<=r = node r (insert k lb k<=r lt) rt
+  ... | inr r<=k = node r lt (insert k r<=k ub rt)
 
   makeTree : List Key -> BST -inf +inf
-  makeTree = {!!}
+  makeTree [] = empty <>
+  makeTree (x ,- l) = insert x <> <> (makeTree l)
 
   -- use the same idea as in BST to define "ordered lists"
   -- be careful about what constraints you need in your recursive case!
   data OList (lo hi : Bound) : Set where
+    emptyOL : LeqBound lo hi -> OList lo hi
+
+    consOL :
+      (k : Key) ->
+      LeqBound lo (inKey k) ->
+      OList (inKey k) hi ->
+      OList lo hi
 
   -- append ordered lists
   -- note that we require a key to "bridge" the two lists
@@ -98,10 +112,12 @@ module
   -- append : {lo mid hi : Bound} -> OList lo mid -> OList mid hi -> OList lo hi
   -- and see where you get stuck
   appendKeyed : {lo hi : Bound} -> (k : Key) -> OList lo (inKey k) -> OList (inKey k) hi -> OList lo hi
-  appendKeyed = {!!}
+  appendKeyed k (emptyOL lo<=k) rs = consOL k lo<=k rs
+  appendKeyed k (consOL x lo<=x ls) rs = consOL x lo<=x (appendKeyed k ls rs) 
 
   flatten : {lo hi : Bound} -> BST lo hi -> OList lo hi
-  flatten = {!!}
+  flatten (empty lo<=hi) = emptyOL lo<=hi
+  flatten (node k lt rt) = appendKeyed k (flatten lt) (flatten rt)
 
   sort : List Key -> OList -inf +inf
   sort xs = flatten (makeTree xs)
