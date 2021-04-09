@@ -279,17 +279,13 @@ module listy {A : Set} {_==?_ : (x y : A) -> Dec (x == y)} where
   Sub-trans-assoc (s-skip sub1) (s-cons sub2) (s-cons sub3) rewrite Sub-trans-assoc sub1 sub2 sub3 = refl
   Sub-trans-assoc sub1          sub2          (s-skip sub3) rewrite Sub-trans-assoc sub1 sub2 sub3 = refl
 
-{- може ли някак без лема? -}
-suc-== : {n m : Nat} -> suc n == suc m -> n == m
-suc-== refl = refl
-
 decNatEq : (n m : Nat) -> Dec (n == m)
 decNatEq zero zero = inr refl
 decNatEq zero (suc m) = inl (\ ())
 decNatEq (suc n) zero = inl (\ ())
 decNatEq (suc n) (suc m) with decNatEq n m
-... | inl x = inl (\y -> x (suc-== y))
-... | inr x = inr (ap suc x)
+... | inl n!=m = inl (\{ refl -> n!=m refl })
+... | inr refl = inr refl
 
 
 open listy {Nat} {decNatEq}
