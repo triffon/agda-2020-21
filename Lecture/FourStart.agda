@@ -177,10 +177,10 @@ module listy {A : Set} {_==?_ : (x y : A) -> Dec (x == y)} where
   find : (x : A) (xs : List A) -> Dec (x In xs)
   find x [] = inl notIn[]
   find x (y ,- ys) with x ==? y
-  find x (y ,- ys) | inl x!=y with find x ys
-  find x (y ,- ys) | inl x!=y | inl xNotInys = inl (nowhere x!=y xNotInys)
-  find x (y ,- ys) | inl x!=y | inr xInys    = inr (there xInys)
-  find x (y ,- ys) | inr refl = inr here
+  ... | inr refl = inr here
+  ... | inl x!=y with find x ys
+  ... | inl xNotInys = inl (nowhere x!=y xNotInys)
+  ... | inr xInys    = inr (there xInys)
 
   -- delete all the occurrences of x in the list
   remove : (x : A) -> (xs : List A) -> List A
@@ -288,8 +288,8 @@ decNatEq zero zero = inr refl
 decNatEq zero (suc m) = inl (\ ())
 decNatEq (suc n) zero = inl (\ ())
 decNatEq (suc n) (suc m) with decNatEq n m
-decNatEq (suc n) (suc m) | inl x = inl (\y -> x (suc-== y))
-decNatEq (suc n) (suc m) | inr x = inr (ap suc x)
+... | inl x = inl (\y -> x (suc-== y))
+... | inr x = inr (ap suc x)
 
 
 open listy {Nat} {decNatEq}
