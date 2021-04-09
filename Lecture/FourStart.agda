@@ -261,12 +261,14 @@ module listy {A : Set} {_==?_ : (x y : A) -> Dec (x == y)} where
   ... | inr _ = s-skip (remove-preserves-Sub x xsSubys)
   remove-preserves-Sub x (s-skip xsSubys) = s-skip (remove-preserves-Sub x xsSubys)
 
-  ,-Sub-remove : {xs ys : List A} (x : A) -> xs Sub x ,- ys -> remove x xs Sub ys
-  -- awful! :(
-  ,-Sub-remove x (s-cons p) with x ==? x
+  ==?-refl : (x : A) -> x ==? x == inr refl
+  ==?-refl x with x ==? x
   ... | inl x!=x = zero-elim (x!=x refl)
-  ... | inr x==x = remove-preserves-Sub x p
-  ,-Sub-remove x (s-skip p)        = remove-preserves-Sub x p
+  ... | inr refl = refl
+
+  ,-Sub-remove : {xs ys : List A} (x : A) -> xs Sub x ,- ys -> remove x xs Sub ys
+  ,-Sub-remove x (s-cons p) rewrite ==?-refl x = remove-preserves-Sub x p
+  ,-Sub-remove x (s-skip p)                    = remove-preserves-Sub x p
 
   Sub-trans-assoc :
     {xs ys zs vs : List A} (sub1 : xs Sub ys) (sub2 : ys Sub zs) (sub3 : zs Sub vs) ->
