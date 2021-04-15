@@ -224,8 +224,6 @@ Dec A = (A -> Zero) + A
 -- u : Nat
 -- n : Nat
 
-{-
-
 -- used a module to introduce global vars
 -- in here, you can compare values for equality with _==?_
 -- in all proofs for functions defined with a `with`
@@ -413,18 +411,19 @@ _ = s-cons (s-skip (s-cons s[]))
 -- the S is because it's similar to Sub, and because I need another name
 -- (also for "selection" I guess)
 data _<S=_ : Nat -> Nat -> Set where
-  o-zero : {!!} <S= {!!}
-  o-skip : {n m : Nat} -> {!!}
-  o-succ : {n m : Nat} -> {!!}
+  o-zero : 0 <S= 0
+  o-skip : {n m : Nat} -> n <S= m -> n <S= suc m
+  o-succ : {n m : Nat} -> n <S= m -> suc n <S= suc m
 
 _ : 1 <S= 1
-_ = {!!}
+_ = o-succ o-zero
 
 _ : 1 <S= 3
-_ = {!!}
+_ = o-succ (o-skip (o-skip o-zero))
 
 _ : 3 <S= 5
-_ = {!!}
+_ = o-succ (o-succ (o-succ (o-skip (o-skip o-zero))))
+
 
 -- in general there's more than one way in which n <S= m!
 -- find out all the ways
@@ -433,36 +432,45 @@ _ :
   (1 <S= 2) >< \p -> -- there's a proof p for 1 <S= 2
   (1 <S= 2) >< \q -> -- and a proof q for 1 <S= 2
   p == q -> Zero     -- and they're different
-_ = {!!}
+_ = o-succ (o-skip o-zero), o-skip (o-succ o-zero) , \()
 
 -- it might be interesting to try to figure out how many proofs there are for n <S= m, for fixed n and m
 -- you can use -l in a hole for such a proof (e.g. 1 <S= 4), together with agdas auto, to get it to list all of them
-
 
 -- we can have an "empty" sub - it selects nothing
 -- this makes more sense once you reach select - so if you want to you can read the comment on select first
 -- alternatively you can think of it as "just a proof"
 0<S= : (n : Nat) -> 0 <S= n
-0<S= = {!!}
+0<S= zero = o-zero
+0<S= (suc n) = o-skip (0<S= n)
 
 -- similarly, we can have an "all" sub - it selects everything
 -- or alternatively, a reflexivity proof
 refl-<S= : (n : Nat) -> n <S= n
-refl-<S= = {!!}
+refl-<S= zero = o-zero
+refl-<S= (suc n) = o-succ (refl-<S= n)
 
 -- there is only one empty sub (and only one proof) - and that's the one you wrote
 0<S=-unique : {n : Nat} (p : 0 <S= n) -> 0<S= n == p
-0<S=-unique = {!!}
+0<S=-unique o-zero = refl
+0<S=-unique (o-skip p) rewrite 0<S=-unique p = refl
 
 -- we can construct a sub from our usual leq
 <=-<S= : {n m : Nat} -> n <= m -> n <S= m
-<=-<S= = {!!}
+<=-<S= {m = 0} ozero = o-zero
+<=-<S= {m = suc m} ozero = o-skip (<=-<S= ozero)
+<=-<S= {m = suc m} (osuc p) = o-succ (<=-<S= p)
+
+<=-suc : (m : Nat) -> m <= suc m
+<=-suc zero = ozero
+<=-suc (suc m) = osuc (<=-suc m)
 
 -- and vice versa
 -- you might need <=-trans here and an additonal lemma for one of the cases
 <S=-<= : {n m : Nat} -> n <S= m -> n <= m
-<S=-<= = {!!}
-
+<S=-<= o-zero = ozero
+<S=-<= {m = suc m} (o-skip p) = <=-trans (<S=-<= p) (<=-suc m)
+<S=-<= (o-succ p) = osuc (<S=-<= p)
 
 -- we can use <S= to encode a "choice of elements" from a vector
 -- this is similar in purpose to _Sub_
@@ -470,8 +478,9 @@ refl-<S= = {!!}
 --
 -- use the <S= proof to guide you on when to keep an element and when to drop one
 select : {A : Set} {m n : Nat} -> n <S= m -> Vec A m -> Vec A n
-select = {!!}
-
+select o-zero [] = []
+select (o-skip p) (x ,- v) = select p v
+select (o-succ p) (x ,- v) = x ,- select p v
 
 -- we can compose selections
 -- alternatively, this is transitivity for <S=
@@ -479,7 +488,15 @@ select = {!!}
 -- so that your later proofs are also easier!
 -- hint: match on the right one first
 _S<<_ : {n m k : Nat} -> n <S= m -> m <S= k -> n <S= k
-p S<< q = {!!}
+o-zero S<< o-zero = o-zero
+o-zero S<< o-skip q = o-skip q
+o-skip p S<< o-skip q = o-skip (o-skip p S<< q)
+-- this is the o-succ-rightmost proof
+o-succ p S<< o-skip q = o-skip (o-succ p S<< q)
+-- alternative: the o-succ-leftmost proof:
+-- o-succ p S<< o-skip q = o-succ (o-skip p S<< q)
+o-skip p S<< o-succ q = o-skip (p S<< q)
+o-succ p S<< o-succ q = o-succ (p S<< q)
 
 -- selecting a composition is the same as composing selects
 -- it doesn't matter if we select a composition or select twice
@@ -488,29 +505,53 @@ select-S<< :
   {A : Set} {n m k : Nat}
   (p : n <S= m) (q : m <S= k) (xs : Vec A k) ->
   select (p S<< q) xs == select p (select q xs)
-select-S<< = {!!}
+select-S<< o-zero o-zero [] = refl
+select-S<< o-zero (o-skip q) (x ,- xs) with select q xs
+... | [] = refl
+select-S<< (o-skip p) (o-skip q) (x ,- xs) = select-S<< (o-skip p) q xs
+select-S<< (o-succ p) (o-skip q) (x ,- xs) = select-S<< (o-succ p) q xs
+select-S<< (o-skip p) (o-succ q) (x ,- xs) = select-S<< p q xs
+select-S<< (o-succ p) (o-succ q) (x ,- xs) rewrite select-S<< p q xs = refl
 
 -- it doesn't matter if we compose with the id selection on the left
 S<<-left-id : {n m : Nat} (p : n <S= m) -> (refl-<S= n S<< p) == p
-S<<-left-id = {!!}
+S<<-left-id o-zero = refl
+S<<-left-id {zero}  (o-skip p) = refl
+S<<-left-id {suc n} (o-skip p) rewrite S<<-left-id p = refl
+S<<-left-id (o-succ p)         rewrite S<<-left-id p = refl
 
 -- or on the right
 S<<-right-id : {n m : Nat} (p : n <S= m) -> (p S<< (refl-<S= m)) == p
-S<<-right-id = {!!}
-
+S<<-right-id o-zero = refl
+S<<-right-id {zero}  (o-skip p) rewrite S<<-right-id p = refl
+S<<-right-id {suc n} (o-skip p) rewrite S<<-right-id p = refl
+S<<-right-id (o-succ p)         rewrite S<<-right-id p = refl
 
 -- and it's also associative
 S<<-assoc :
   {n m k v : Nat} (p : n <S= m) (q : m <S= k) (t : k <S= v) ->
   (p S<< q) S<< t == p S<< (q S<< t)
-S<<-assoc = {!!}
+
+S<<-assoc o-zero o-zero o-zero = refl
+S<<-assoc o-zero o-zero (o-skip t) = refl
+S<<-assoc o-zero (o-skip q) (o-skip t) = refl
+S<<-assoc o-zero (o-skip q) (o-succ t) = refl
+S<<-assoc (o-skip p) (o-skip q) (o-skip t) rewrite S<<-assoc (o-skip p) (o-skip q) t = refl
+S<<-assoc (o-skip p) (o-skip q) (o-succ t) rewrite S<<-assoc (o-skip p) q t = refl
+S<<-assoc (o-skip p) (o-succ q) (o-skip t) rewrite S<<-assoc (o-skip p) (o-succ q) t = refl
+S<<-assoc (o-skip p) (o-succ q) (o-succ t) rewrite S<<-assoc p q t = refl
+S<<-assoc (o-succ p) (o-skip q) (o-skip t) rewrite S<<-assoc (o-succ p) (o-skip q) t = refl
+S<<-assoc (o-succ p) (o-skip q) (o-succ t) rewrite S<<-assoc (o-succ p) q t = refl
+S<<-assoc (o-succ p) (o-succ q) (o-skip t) rewrite S<<-assoc (o-succ p) (o-succ q) t = refl
+S<<-assoc (o-succ p) (o-succ q) (o-succ t) rewrite S<<-assoc p q t = refl
 
 -- we can use selections of a particular form to index into a vector
 -- a selection with 1 on the left effectively means that there is only one place in its construction that can have a o-succ constructor
 -- that's *exactly* the index of the item we want to get from the vector
 -- (use select and vHead)
 vProject : {A : Set} {n : Nat} -> Vec A n -> 1 <S= n -> A
-vProject = {!!}
+vProject (x ,- v) (o-skip p) = vProject v p
+vProject (x ,- v) (o-succ p) = x
 
 -- note the locations of the "up arrows"
 
@@ -529,7 +570,8 @@ _ = refl
 -- but we can also do the opposite!
 -- if we can get a value for every 1 <S= n, then we effectively know all the elements of a vector
 vTabulate : {A : Set} (n : Nat) -> (1 <S= n -> A) -> Vec A n
-vTabulate = {!!}
+vTabulate zero f = []
+vTabulate (suc n) f = f (o-succ (0<S= n)) ,- vTabulate n (\p -> f (o-skip p))
 
 -- tabulating projections should result in the original vector
 -- "evaluate more pls agda" might be useful here
@@ -537,7 +579,8 @@ vTabulate = {!!}
 -- spacemacs - <SPC> u <SPC> u <normal-bind>
 -- vscode - (should be) C-u C-u <normal-bind>
 vTabulate-vProject : {A : Set} {n : Nat} -> (xs : Vec A n) -> vTabulate n (vProject xs) == xs
-vTabulate-vProject = {!!}
+vTabulate-vProject [] = refl
+vTabulate-vProject (x ,- xs) rewrite vTabulate-vProject xs = refl
 
 -- projecting a tabulation should result in the original tabulation
 -- again, "evaluate more pls" might be useful
@@ -546,6 +589,5 @@ vProject-vTabulate :
   {A : Set} {n : Nat}
   (f : 1 <S= n -> A) (i : 1 <S= n) ->
   vProject (vTabulate n f) i == f i
-vProject-vTabulate = {!!}
-
--}
+vProject-vTabulate f (o-skip i) = vProject-vTabulate (\p -> f (o-skip p)) i
+vProject-vTabulate f (o-succ i) rewrite 0<S=-unique i = refl
