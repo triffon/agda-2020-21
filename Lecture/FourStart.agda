@@ -488,13 +488,8 @@ select (o-succ p) (x ,- v) = x ,- select p v
 -- so that your later proofs are also easier!
 -- hint: match on the right one first
 _S<<_ : {n m k : Nat} -> n <S= m -> m <S= k -> n <S= k
-o-zero S<< o-zero = o-zero
-o-zero S<< o-skip q = o-skip q
-o-skip p S<< o-skip q = o-skip (o-skip p S<< q)
--- this is the o-succ-rightmost proof
-o-succ p S<< o-skip q = o-skip (o-succ p S<< q)
--- alternative: the o-succ-leftmost proof:
--- o-succ p S<< o-skip q = o-succ (o-skip p S<< q)
+p S<< o-zero = p
+p S<< o-skip q = o-skip (p S<< q)
 o-skip p S<< o-succ q = o-skip (p S<< q)
 o-succ p S<< o-succ q = o-succ (p S<< q)
 
@@ -505,44 +500,34 @@ select-S<< :
   {A : Set} {n m k : Nat}
   (p : n <S= m) (q : m <S= k) (xs : Vec A k) ->
   select (p S<< q) xs == select p (select q xs)
-select-S<< o-zero o-zero [] = refl
-select-S<< o-zero (o-skip q) (x ,- xs) with select q xs
-... | [] = refl
-select-S<< (o-skip p) (o-skip q) (x ,- xs) = select-S<< (o-skip p) q xs
-select-S<< (o-succ p) (o-skip q) (x ,- xs) = select-S<< (o-succ p) q xs
+
+select-S<< p o-zero [] = refl
+select-S<< p (o-skip q) (x ,- xs) = select-S<< p q xs
 select-S<< (o-skip p) (o-succ q) (x ,- xs) = select-S<< p q xs
 select-S<< (o-succ p) (o-succ q) (x ,- xs) rewrite select-S<< p q xs = refl
 
 -- it doesn't matter if we compose with the id selection on the left
 S<<-left-id : {n m : Nat} (p : n <S= m) -> (refl-<S= n S<< p) == p
 S<<-left-id o-zero = refl
-S<<-left-id {zero}  (o-skip p) = refl
-S<<-left-id {suc n} (o-skip p) rewrite S<<-left-id p = refl
-S<<-left-id (o-succ p)         rewrite S<<-left-id p = refl
+S<<-left-id (o-skip p) rewrite S<<-left-id p = refl
+S<<-left-id (o-succ p) rewrite S<<-left-id p = refl
+
 
 -- or on the right
 S<<-right-id : {n m : Nat} (p : n <S= m) -> (p S<< (refl-<S= m)) == p
 S<<-right-id o-zero = refl
-S<<-right-id {zero}  (o-skip p) rewrite S<<-right-id p = refl
-S<<-right-id {suc n} (o-skip p) rewrite S<<-right-id p = refl
-S<<-right-id (o-succ p)         rewrite S<<-right-id p = refl
+S<<-right-id (o-skip p) rewrite S<<-right-id p = refl
+S<<-right-id (o-succ p) rewrite S<<-right-id p = refl
 
 -- and it's also associative
 S<<-assoc :
   {n m k v : Nat} (p : n <S= m) (q : m <S= k) (t : k <S= v) ->
   (p S<< q) S<< t == p S<< (q S<< t)
 
-S<<-assoc o-zero o-zero o-zero = refl
-S<<-assoc o-zero o-zero (o-skip t) = refl
-S<<-assoc o-zero (o-skip q) (o-skip t) = refl
-S<<-assoc o-zero (o-skip q) (o-succ t) = refl
-S<<-assoc (o-skip p) (o-skip q) (o-skip t) rewrite S<<-assoc (o-skip p) (o-skip q) t = refl
-S<<-assoc (o-skip p) (o-skip q) (o-succ t) rewrite S<<-assoc (o-skip p) q t = refl
-S<<-assoc (o-skip p) (o-succ q) (o-skip t) rewrite S<<-assoc (o-skip p) (o-succ q) t = refl
+S<<-assoc p q o-zero = refl
+S<<-assoc p q (o-skip t) rewrite S<<-assoc p q t = refl
+S<<-assoc p (o-skip q) (o-succ t) rewrite S<<-assoc p q t = refl
 S<<-assoc (o-skip p) (o-succ q) (o-succ t) rewrite S<<-assoc p q t = refl
-S<<-assoc (o-succ p) (o-skip q) (o-skip t) rewrite S<<-assoc (o-succ p) (o-skip q) t = refl
-S<<-assoc (o-succ p) (o-skip q) (o-succ t) rewrite S<<-assoc (o-succ p) q t = refl
-S<<-assoc (o-succ p) (o-succ q) (o-skip t) rewrite S<<-assoc (o-succ p) (o-succ q) t = refl
 S<<-assoc (o-succ p) (o-succ q) (o-succ t) rewrite S<<-assoc p q t = refl
 
 -- we can use selections of a particular form to index into a vector
