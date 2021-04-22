@@ -355,8 +355,6 @@ _ :
   app (lam (app (` 0) (` 1))) (lam (app (` 0) (lam (app (` 0) (` 2)))))
 _ = refl
 
-{-
-
 -- we could use strings here, but instead we'll use Nats
 -- meaning 1 will "stand for" x₁, 8 for x₈, etc
 data NamedLam : Set where
@@ -364,7 +362,29 @@ data NamedLam : Set where
   app : NamedLam -> NamedLam -> NamedLam
   lam_>_ : Nat -> NamedLam -> NamedLam
 
+_!!_ : {A : Set} -> (l : List A) -> Fin (length l) -> A
+(x ,- l) !! zero = x
+(x ,- l) !! suc i = l !! i
+
+freshName : List Nat -> Nat
+freshName [] = 0
+freshName (x ,- l) with freshName l
+... | z with dec<= z x
+... | no _ = z
+... | yes _ = suc x
+
 -- give names to the lambda function, using the provided context
 name : (ctxt : List Nat) -> Lam (length ctxt) -> NamedLam
-name ctxt t = {!!}
--}
+name ctxt (var x) = var (ctxt !! x)
+name ctxt (app s t) = app (name ctxt s) (name ctxt t)
+name ctxt (lam t) with freshName ctxt
+... | x = lam x > name (x ,- ctxt) t
+
+_ : name [] (lam (` 0)) == lam 0 > var 0
+_ = refl
+
+_ :
+     name (3 ,- 5 ,- 8 ,- []) (app (app (` 0) (lam (app (app (` 0) (` 1)) (` 3)))) (` 2))
+     ==
+     app (app (var 3) (lam 9 > app (app (var 9) (var 3)) (var 8))) (var 8)
+_ = refl
