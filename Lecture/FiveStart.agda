@@ -15,23 +15,23 @@ data Fin : Nat -> Set where
   zero : {n : Nat} -> Fin (suc n)
   suc : {n : Nat} -> Fin n -> Fin (suc n)
 
-{-
 toNat : {n : Nat} -> Fin n -> Nat
-toNat = {!!}
+toNat zero = 0
+toNat (suc f) = suc (toNat f)
 
 -- express < using <=
 -- (without! using ==)
 _<_ : Nat -> Nat -> Set
-n < m = {!!}
+n < m = suc n <= m
 
 _ : 3 < 5
-_ = {!!}
+_ = osuc (osuc (osuc (osuc ozero)))
 
 3NotLessThan2 : 3 < 2 -> Zero
-3NotLessThan2 = {!!}
+3NotLessThan2 (osuc (osuc ()))
 
 <-suc : (n : Nat) -> n < suc n
-<-suc = {!!}
+<-suc n = osuc (<=-refl n)
 
 -- convert from a Nat to a Fin
 -- note that we can't just write (n : Nat) -> Fin n
@@ -40,7 +40,8 @@ _ = {!!}
 -- we allow for an arbitrary m, instead of just Fin (suc n), because it's more convenient
 -- (e.g. for fromNat-toNat-id)
 fromNat : {m : Nat} -> (n : Nat) -> n < m -> Fin m
-fromNat = {!!}
+fromNat zero (osuc p) = zero
+fromNat (suc n) (osuc p) = suc (fromNat n p)
 
 -- write down the calculated version of <
 -- this is useful because later we will want to write literals (like 1)
@@ -49,21 +50,25 @@ fromNat = {!!}
 -- instead, if we provide a calculated version, when we give come constant (like 1)
 -- agda will be able to automatically figure out the required proof, by using this definition
 Lt : Nat -> Nat -> Set
-Lt = {!!}
+Lt n zero = Zero
+Lt zero (suc m) = One
+Lt (suc n) (suc m) = Lt n m
 
 -- prove that the calculated version implies the regular one,
 -- so that we may provide the regular proof to fromNat later
 Lt-< : (n m : Nat) -> Lt n m -> n < m
-Lt-< = {!!}
+Lt-< zero (suc m) p = osuc ozero
+Lt-< (suc n) (suc m) p = osuc (Lt-< n m p)
 
 -- the "smart constructor" for Fins mentioned in the comment on Lt
 -- it allows us to write "Fin literals" with almost no hassle
 -- you'll need to expose *all* the implicit arguments here
 -- see the examples below
 fin : {m : Nat} -> (n : Nat) -> {Lt n m} -> Fin m
-fin = {!!}
+fin {m} n {p}  = fromNat n (Lt-< n m p)
 -- there is actually an even better way to do this - https://agda.readthedocs.io/en/v2.6.1.3/language/literal-overloading.html
 -- but it requires us to use some machinery we haven't introduced yet
+
 
 _ : Fin 3
 _ = fin 2
@@ -85,29 +90,40 @@ _ : Fin 5
 _ = fin 3
 
 toNat-fromNat-id : (n : Nat) -> n == toNat (fromNat n (<-suc n))
-toNat-fromNat-id = {!!}
+toNat-fromNat-id zero = refl
+toNat-fromNat-id (suc n) rewrite ==-symm (toNat-fromNat-id n) = refl
 
 toNat-< : {n : Nat} -> (x : Fin n) -> toNat x < n
-toNat-< = {!!}
+toNat-< zero = osuc ozero
+toNat-< (suc x) = osuc (toNat-< x)
 
 -- weaken, because we allow *more* values in the new Fin,
 -- meaning we have *less* information about what the result actually is
 weakenFin : {m n : Nat} -> Fin n -> n <= m -> Fin m
-weakenFin = {!!}
+weakenFin zero (osuc p) = zero
+weakenFin (suc n) (osuc p) = suc (weakenFin n p)
 
 -- specialised, useful later
 -- look at <=-suc in Lib.Nat
 weakenFinSuc : {n : Nat} -> Fin n -> Fin (suc n)
-weakenFinSuc = {!!}
+weakenFinSuc {n} x = weakenFin x (<=-suc n)
 
 <-<= : {n m : Nat} -> n < m -> n <= m
-<-<= = {!!}
+<-<= {n} p = <=-trans (<=-suc n) p
 
 fromNat-toNat-id : {m n : Nat} (x : Fin n) (p : n <= m) -> x == fromNat (toNat x) (toNat-< x)
-fromNat-toNat-id = {!!}
+fromNat-toNat-id zero (osuc p) = refl
+fromNat-toNat-id (suc x) (osuc p) rewrite ==-symm (fromNat-toNat-id x p) = refl
 
 decEqFin : {n : Nat} -> (x y : Fin n) -> Dec (x == y)
-decEqFin = {!!}
+decEqFin zero zero = yes refl
+decEqFin zero (suc y) = no (\ ())
+decEqFin (suc x) zero = no (\ ())
+decEqFin (suc x) (suc y) with decEqFin x y
+... | no p = no \{ refl -> p refl }
+... | yes p rewrite p = yes refl
+
+{-
 
 -- name the constructors var, app, lam
 -- for everything below to work ^^
