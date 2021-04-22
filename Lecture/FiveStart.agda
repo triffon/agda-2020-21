@@ -301,10 +301,13 @@ _ :
   withFree 5 (lam (lam (app (` 1) (app (` 0) (` 3)))))
 _ = refl
 
-{-
 
 _[_=>_] : {n : Nat} -> Lam n -> Fin n -> Lam n -> Lam n
-_[_=>_] = {!!}
+var x [ k => t ] with decEqFin x k
+... | no _     = var x
+... | yes refl = t
+app s1 s2 [ k => t ] = app (s1 [ k => t ]) (s2 [ k => t ])
+lam s [ k => t ] = lam (s [ suc k => shiftUp10 t ])
 
 -- what does substituting 2 for 3 in 1 result in?
 --
@@ -313,7 +316,7 @@ _[_=>_] = {!!}
 _ :
   withFree 4 ((` 1) [ fin 2 => `_ 3 ])
   ==
-  {!!}
+  (` 1)
 _ = refl
 
 -- what does substituting 2 for 3 in 2 result in?
@@ -321,36 +324,38 @@ _ = refl
 _ :
   withFree 4 ((` 2) [ fin 2 => `_ 3 ])
   ==
-  {!!}
+  (` 3)
 _ = refl
 
 -- what does substituting 2 for 3 in λ0 result in?
 _ :
   withFree 4 (lam (` 0) [ fin 2 => `_ 3 ])
   ==
-  {!!}
+  lam (` 0)
 _ = refl
 
 -- what does substituting 3 for 5 in λ3 result in?
 _ :
   withFree 6 (lam (` 3)) [ fin 2 => ` 5 ]
   ==
-  {!!}
+  lam (` 6)
 _ = refl
 
 -- what does substituting 0 for 01 in λ0 result in?
 _ :
   withFree 4 (lam (` 0)) [ fin 0 => app (` 0) (` 1) ]
   ==
-  {!!}
+  lam (` 0)
 _ = refl
 
 -- what does substituting 0 for λ01 in 0(λ01) result in?
 _ :
   withFree 2 (app (` 0) (lam (app (` 0) (` 1)))) [ fin 0 => lam (app (` 0) (` 1)) ]
   ==
-  {!!}
+  app (lam (app (` 0) (` 1))) (lam (app (` 0) (lam (app (` 0) (` 2)))))
 _ = refl
+
+{-
 
 -- we could use strings here, but instead we'll use Nats
 -- meaning 1 will "stand for" x₁, 8 for x₈, etc
