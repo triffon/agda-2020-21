@@ -53,7 +53,7 @@ _ = suc (suc (suc (suc zero)))
 -- _ = {!zero!}
 
 toNat : {n : Nat} -> Fin n -> Nat
-toNat zero = 0
+toNat zero    = 0
 toNat (suc f) = suc (toNat f)
 
 -- express < using <=
@@ -77,7 +77,7 @@ _ = osuc (osuc (osuc (osuc ozero)))
 -- we allow for an arbitrary m, instead of just Fin (suc n), because it's more convenient
 -- (e.g. for fromNat-toNat-id)
 fromNat : {m : Nat} -> (n : Nat) -> n < m -> Fin m
-fromNat zero (osuc p) = zero
+fromNat zero    (osuc p) = zero
 fromNat (suc n) (osuc p) = suc (fromNat n p)
 
 -- write down the calculated version of <
@@ -87,14 +87,14 @@ fromNat (suc n) (osuc p) = suc (fromNat n p)
 -- instead, if we provide a calculated version, when we give come constant (like 1)
 -- agda will be able to automatically figure out the required proof, by using this definition
 Lt : Nat -> Nat -> Set
-Lt n zero = Zero
-Lt zero (suc m) = One
+Lt n      zero = Zero
+Lt zero   (suc m) = One
 Lt (suc n) (suc m) = Lt n m
 
 -- prove that the calculated version implies the regular one,
 -- so that we may provide the regular proof to fromNat later
 Lt-< : (n m : Nat) -> Lt n m -> n < m
-Lt-< zero (suc m) p = osuc ozero
+Lt-< zero    (suc m) p = osuc ozero
 Lt-< (suc n) (suc m) p = osuc (Lt-< n m p)
 
 -- the "smart constructor" for Fins mentioned in the comment on Lt
@@ -105,7 +105,6 @@ fin : {m : Nat} -> (n : Nat) -> {Lt n m} -> Fin m
 fin {m} n {p}  = fromNat n (Lt-< n m p)
 -- there is actually an even better way to do this - https://agda.readthedocs.io/en/v2.6.1.3/language/literal-overloading.html
 -- but it requires us to use some machinery we haven't introduced yet
-
 
 _ : Fin 3
 _ = fin 2
@@ -131,13 +130,13 @@ toNat-fromNat-id zero = refl
 toNat-fromNat-id (suc n) rewrite ==-symm (toNat-fromNat-id n) = refl
 
 toNat-< : {n : Nat} -> (x : Fin n) -> toNat x < n
-toNat-< zero = osuc ozero
+toNat-< zero    = osuc ozero
 toNat-< (suc x) = osuc (toNat-< x)
 
 -- weaken, because we allow *more* values in the new Fin,
 -- meaning we have *less* information about what the result actually is
 weakenFin : {m n : Nat} -> Fin n -> n <= m -> Fin m
-weakenFin zero (osuc p) = zero
+weakenFin zero    (osuc p) = zero
 weakenFin (suc n) (osuc p) = suc (weakenFin n p)
 
 -- specialised, useful later
@@ -149,15 +148,15 @@ weakenFinSuc {n} x = weakenFin x (<=-suc n)
 <-<= {n} p = <=-trans (<=-suc n) p
 
 fromNat-toNat-id : {m n : Nat} (x : Fin n) (p : n <= m) -> x == fromNat (toNat x) (toNat-< x)
-fromNat-toNat-id zero (osuc p) = refl
+fromNat-toNat-id zero    (osuc p) = refl
 fromNat-toNat-id (suc x) (osuc p) rewrite ==-symm (fromNat-toNat-id x p) = refl
 
 decEqFin : {n : Nat} -> (x y : Fin n) -> Dec (x == y)
-decEqFin zero zero = yes refl
-decEqFin zero (suc y) = no (\ ())
-decEqFin (suc x) zero = no (\ ())
+decEqFin zero zero    = yes refl
+decEqFin zero (suc _) = no (\ ())
+decEqFin (suc _) zero = no (\ ())
 decEqFin (suc x) (suc y) with decEqFin x y
-... | no p = no \{ refl -> p refl }
+... | no  p = no \{ refl -> p refl }
 ... | yes p rewrite p = yes refl
 
 -- name the constructors var, app, lam
@@ -239,10 +238,10 @@ _ = refl
 -- _ = refl
 
 dec<= : (n m : Nat) -> Dec (n <= m)
-dec<= zero m = yes ozero
-dec<= (suc n) zero = no (\ ())
+dec<= zero m       = yes ozero
+dec<= (suc n) zero = no \()
 dec<= (suc n) (suc m) with dec<= n m
-... | no p  = no  \{ (osuc q) -> p q }
+... | no  p = no \{ (osuc q) -> p q }
 ... | yes p = yes (osuc p)
 
 dec< : (n m : Nat) -> Dec (n < m)
@@ -251,7 +250,7 @@ dec< n m = dec<= (suc n) m
 -- "shift"/increment all the free variables in the given lambda term up by one
 shiftUp1 : {n : Nat} -> Nat -> Lam n -> Lam (suc n)
 shiftUp1 c (var i) with dec< (toNat i) c
-... | no  x = var (suc i)
+... | no  _ = var (suc i)
 ... | yes _ = var (weakenFinSuc i)
 shiftUp1 c (app s t) = app (shiftUp1 c s) (shiftUp1 c t)
 shiftUp1 c (lam t) = lam (shiftUp1 (suc c) t)
@@ -303,11 +302,11 @@ _ = refl
 
 
 _[_=>_] : {n : Nat} -> Lam n -> Fin n -> Lam n -> Lam n
-var x [ k => t ] with decEqFin x k
-... | no _     = var x
-... | yes refl = t
+var x     [ k => t ] with decEqFin x k
+... | no  _  = var x
+... | yes _  = t
 app s1 s2 [ k => t ] = app (s1 [ k => t ]) (s2 [ k => t ])
-lam s [ k => t ] = lam (s [ suc k => shiftUp10 t ])
+lam s     [ k => t ] = lam (s [ suc k => shiftUp10 t ])
 
 -- what does substituting 2 for 3 in 1 result in?
 --
@@ -363,8 +362,8 @@ data NamedLam : Set where
   lam_>_ : Nat -> NamedLam -> NamedLam
 
 _!!_ : {A : Set} -> (l : List A) -> Fin (length l) -> A
-(x ,- l) !! zero = x
-(x ,- l) !! suc i = l !! i
+(x ,- _) !! zero = x
+(_ ,- l) !! suc i = l !! i
 
 freshName : List Nat -> Nat
 freshName [] = 0
