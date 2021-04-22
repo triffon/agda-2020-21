@@ -160,11 +160,12 @@ decEqFin (suc x) (suc y) with decEqFin x y
 ... | no p = no \{ refl -> p refl }
 ... | yes p rewrite p = yes refl
 
-{-
-
 -- name the constructors var, app, lam
 -- for everything below to work ^^
 data Lam : Nat -> Set where
+  var : {n : Nat} -> (i : Fin n) -> Lam n
+  app : {n : Nat} -> Lam n -> Lam n -> Lam n
+  lam : {n : Nat} -> Lam (suc n) -> Lam n
 
 -- construct a variable from a Nat directly
 -- you'll need to expose the Lt arg
@@ -174,7 +175,7 @@ data Lam : Nat -> Set where
 -- var (fin 2) or var (suc (suc zero))
 -- most of the time
 `_ : {m : Nat} -> (n : Nat) -> {Lt n m} -> Lam m
-`_ n {x} = ?
+`_ {m} n {x} = var (fromNat n (Lt-< n m x))
 
 -- λx. λy. x (x z)
 -- \x -> \y -> x (x z)
@@ -183,20 +184,20 @@ _ = lam (lam (app (` 0) (app (` 0) (` 1))))
 
 -- define the id function using nameless terms
 lamId : Lam 0
-lamId = {!!}
+lamId = lam (` 0)
 
 -- define the const function using nameless terms
 -- taking two arguments, and always returning the first one
 lamK : Lam 0
-lamK = {!!}
+lamK = lam (lam (` 0))
 
 -- implement the following function
 s : {A B C : Set} -> (A -> B -> C) -> (A -> B) -> A -> C
-s = {!!}
+s x y z = x z (y z)
 
 -- translate s into Lam
 lamS : Lam 0
-lamS = {!!}
+lamS = lam (lam (lam (app (app (` 2) (` 0)) (app (` 1) (` 0)))))
 
 -- a purely syntactic trick, to allow us to specify beforehand
 -- how many free variables our lambda term will have when it is ambiguous
@@ -238,10 +239,16 @@ _ = refl
 -- _ = refl
 
 dec<= : (n m : Nat) -> Dec (n <= m)
-dec<= = {!!}
+dec<= zero m = yes ozero
+dec<= (suc n) zero = no (\ ())
+dec<= (suc n) (suc m) with dec<= n m
+... | no p  = no  \{ (osuc q) -> p q }
+... | yes p = yes (osuc p)
 
 dec< : (n m : Nat) -> Dec (n < m)
-dec< = {!!}
+dec< n m = dec<= (suc n) m
+
+{-
 
 -- "shift"/increment all the free variables in the given lambda term up by one
 shiftUp1 : {n : Nat} -> Nat -> Lam n -> Lam (suc n)
