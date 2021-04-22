@@ -163,7 +163,7 @@ decEqFin (suc x) (suc y) with decEqFin x y
 -- name the constructors var, app, lam
 -- for everything below to work ^^
 data Lam : Nat -> Set where
-  var : {n : Nat} -> (i : Fin n) -> Lam n
+  var : {n : Nat} -> Fin n -> Lam n
   app : {n : Nat} -> Lam n -> Lam n -> Lam n
   lam : {n : Nat} -> Lam (suc n) -> Lam n
 
@@ -248,11 +248,13 @@ dec<= (suc n) (suc m) with dec<= n m
 dec< : (n m : Nat) -> Dec (n < m)
 dec< n m = dec<= (suc n) m
 
-{-
-
 -- "shift"/increment all the free variables in the given lambda term up by one
 shiftUp1 : {n : Nat} -> Nat -> Lam n -> Lam (suc n)
-shiftUp1 c t = {!!}
+shiftUp1 c (var i) with dec< (toNat i) c
+... | no  x = var (suc i)
+... | yes _ = var (weakenFinSuc i)
+shiftUp1 c (app s t) = app (shiftUp1 c s) (shiftUp1 c t)
+shiftUp1 c (lam t) = lam (shiftUp1 (suc c) t)
 
 shiftUp10 : {n : Nat} -> Lam n -> Lam (suc n)
 shiftUp10 = shiftUp1 0
@@ -265,18 +267,20 @@ shiftUp10 = shiftUp1 0
 -- (alternatively we could've given one for the var in the end)
 -- this comes down to the fact that e the lambda term we've given is not restricted
 -- to being in any given Lam n - n could be anything, as long as it has *enough* free vars
+
 _ :
   withFree 1 (shiftUp10 (lam (` 0)))
   ==
-  {!!}
+  withFree 1 (lam (` 0))
 _ = refl
+
 -- what does shifting
 -- λ λ 1
 -- result in?
 _ :
   shiftUp10 (withFree 2 (lam (lam (` 1))))
   ==
-  {!!}
+  withFree 3 (lam (lam (` 1)))
 _ = refl
 
 -- what does shifting
@@ -285,7 +289,7 @@ _ = refl
 _ :
   shiftUp10 (withFree 4 (lam (lam (` 3))))
   ==
-  {!!}
+  withFree 5 (lam (lam (` 4)))
 _ = refl
 
 -- what does shifting
@@ -294,8 +298,10 @@ _ = refl
 _ :
   shiftUp10 (withFree 4 (lam (lam (app (` 1) (app (` 0) (` 2))))))
   ==
-  {!!}
+  withFree 5 (lam (lam (app (` 1) (app (` 0) (` 3)))))
 _ = refl
+
+{-
 
 _[_=>_] : {n : Nat} -> Lam n -> Fin n -> Lam n -> Lam n
 _[_=>_] = {!!}
