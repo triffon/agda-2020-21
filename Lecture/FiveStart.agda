@@ -174,7 +174,7 @@ data Lam : Nat -> Set where
 -- var (fin 2) or var (suc (suc zero))
 -- most of the time
 `_ : {m : Nat} -> (n : Nat) -> {Lt n m} -> Lam m
-`_ {m} n {x} = var (fromNat n (Lt-< n m x))
+`_  n {x} = var (fin n {x})
 
 -- λx. λy. x (x z)
 -- \x -> \y -> x (x z)
