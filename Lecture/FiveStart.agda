@@ -389,7 +389,7 @@ _ :
 _ = refl
 
 infix 10 _In_
-  
+
 data _In_ {A : Set} (x : A) : List A -> Set where
   here : {xs : List A} -> x In (x ,- xs)
   there : {y : A} {xs : List A} -> x In xs -> x In (y ,- xs)
@@ -408,27 +408,20 @@ Lt-trans : (n m k : Nat) -> Lt n m -> Lt m k -> Lt n k
 Lt-trans zero (suc m) (suc k) p q = <>
 Lt-trans (suc n) (suc m) (suc k) p q = Lt-trans n m k p q
 
-weakenAll : {X : Set} {P Q : X -> Set} -> ((x : X) -> P x -> Q x) -> (l : List X) -> All P l -> All Q l
-weakenAll _ [] _ = <>
-weakenAll f (x ,- l) (px , allp) = f x px , weakenAll f l allp
-
 Lt-<=-trans : (m n k : Nat) -> Lt m n -> n <= k -> Lt m k
 Lt-<=-trans m .0 zero p ozero = p
 Lt-<=-trans zero (suc n) (suc k) p (osuc q) = <>
 Lt-<=-trans (suc m) (suc n) (suc k) p (osuc q) = Lt-<=-trans m n k p q
 
-freshNameGtAll : (l : List Nat) -> All (\x -> Lt x (freshName l)) l
-freshNameGtAll [] = <>
-freshNameGtAll (x ,- l) with dec<= (freshName l) x
-... | no p = not<=-Lt (freshName l) x p , freshNameGtAll l
-... | yes p = Lt-suc x , weakenAll (\y q -> Lt-trans y x (suc x) (Lt-<=-trans y (freshName l) x q p) (Lt-suc x)) l (freshNameGtAll l)
+freshNameGtAll : (x : Nat) -> (l : List Nat) -> x In l -> Lt x (freshName l)
+freshNameGtAll x (y ,- l) xInl with dec<= (freshName l) y
+freshNameGtAll .y (y ,- l) here | no p = not<=-Lt (freshName l) y p
+freshNameGtAll x (y ,- l) (there xInl) | no p = freshNameGtAll x l xInl
+freshNameGtAll .y (y ,- l) here | yes p = Lt-suc y
+freshNameGtAll x (y ,- l) (there xInl) | yes p = Lt-trans x y (suc y) (Lt-<=-trans x (freshName l) y (freshNameGtAll x l xInl) p) (Lt-suc y)
 
 Lt-not-refl : (x : Nat) -> Lt x x -> Zero
 Lt-not-refl (suc x) p = Lt-not-refl x p
 
-AllLt-notIn : (y : Nat) -> (l : List Nat) -> All (\x -> Lt x y) l -> y In l -> Zero
-AllLt-notIn y (.y ,- l) (y<y , all<y) here = Lt-not-refl y y<y
-AllLt-notIn y (x ,- l) (x<y , all<y) (there yinl) = AllLt-notIn y l all<y yinl
-
 nameIsFresh : (l : List Nat) -> freshName l In l -> Zero
-nameIsFresh l = AllLt-notIn (freshName l) l (freshNameGtAll l)
+nameIsFresh l p = Lt-not-refl (freshName l) (freshNameGtAll (freshName l) l p)
