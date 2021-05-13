@@ -394,34 +394,22 @@ data _In_ {A : Set} (x : A) : List A -> Set where
   here : {xs : List A} -> x In (x ,- xs)
   there : {y : A} {xs : List A} -> x In xs -> x In (y ,- xs)
 
-not<=-Lt : (m n : Nat) -> (m <= n -> Zero) -> Lt n m
-not<=-Lt zero n p = p ozero
-not<=-Lt (suc m) zero p = <>
-not<=-Lt (suc m) (suc n) p = not<=-Lt m n (\ z -> p (osuc z))
+not<=-< : (m n : Nat) -> (m <= n -> Zero) -> n < m
+not<=-< zero n p = zero-elim (p ozero)
+not<=-< (suc m) zero p = osuc ozero
+not<=-< (suc m) (suc n) p = osuc (not<=-< m n (\ z -> p (osuc z)))
 
-Lt-suc : (n : Nat) ->  Lt n (suc n)
-Lt-suc zero = <>
-Lt-suc (suc n) = Lt-suc n
-
-Lt-trans : (n m k : Nat) -> Lt n m -> Lt m k -> Lt n k
--- Lt-trans n m k p q = ?
-Lt-trans zero (suc m) (suc k) p q = <>
-Lt-trans (suc n) (suc m) (suc k) p q = Lt-trans n m k p q
-
-Lt-<=-trans : (m n k : Nat) -> Lt m n -> n <= k -> Lt m k
-Lt-<=-trans m .0 zero p ozero = p
-Lt-<=-trans zero (suc n) (suc k) p (osuc q) = <>
-Lt-<=-trans (suc m) (suc n) (suc k) p (osuc q) = Lt-<=-trans m n k p q
-
-freshNameGtAll : (x : Nat) -> (l : List Nat) -> x In l -> Lt x (freshName l)
+freshNameGtAll : (x : Nat) -> (l : List Nat) -> x In l -> x < freshName l
 freshNameGtAll x (y ,- l) xInl with dec<= (freshName l) y
-freshNameGtAll .y (y ,- l) here | no p = not<=-Lt (freshName l) y p
-freshNameGtAll x (y ,- l) (there xInl) | no p = freshNameGtAll x l xInl
-freshNameGtAll .y (y ,- l) here | yes p = Lt-suc y
-freshNameGtAll x (y ,- l) (there xInl) | yes p = Lt-trans x y (suc y) (Lt-<=-trans x (freshName l) y (freshNameGtAll x l xInl) p) (Lt-suc y)
+freshNameGtAll .y (y ,- l) here        | no p  = not<=-< (freshName l) y p
+freshNameGtAll x (y ,- l) (there xInl) | no _  = freshNameGtAll x l xInl
+freshNameGtAll .y (y ,- l) here        | yes _ = <=-refl (suc y)
+freshNameGtAll x (y ,- l) (there xInl) | yes p = <=-trans (freshNameGtAll x l xInl)
+                                                          (<=-trans p (<=-suc y))
 
-Lt-not-refl : (x : Nat) -> Lt x x -> Zero
-Lt-not-refl (suc x) p = Lt-not-refl x p
+<-arefl : (n : Nat) -> n < n -> Zero
+<-arefl zero = \ ()
+<-arefl (suc n) (osuc p) = <-arefl n p
 
 nameIsFresh : (l : List Nat) -> freshName l In l -> Zero
-nameIsFresh l p = Lt-not-refl (freshName l) (freshNameGtAll (freshName l) l p)
+nameIsFresh l p = <-arefl (freshName l) (freshNameGtAll (freshName l) l p)
