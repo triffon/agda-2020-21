@@ -161,10 +161,10 @@ decEqFin (suc x) (suc y) with decEqFin x y
 
 -- name the constructors var, app, lam
 -- for everything below to work ^^
-data Lam : Nat -> Set where
-  var : {n : Nat} -> Fin n -> Lam n
-  app : {n : Nat} -> Lam n -> Lam n -> Lam n
-  lam : {n : Nat} -> Lam (suc n) -> Lam n
+data Lam (n : Nat) : Set where
+  var : Fin n -> Lam n
+  app : Lam n -> Lam n -> Lam n
+  lam : Lam (suc n) -> Lam n
 
 -- construct a variable from a Nat directly
 -- you'll need to expose the Lt arg
@@ -387,3 +387,48 @@ _ :
      ==
      app (app (var 3) (lam 9 > app (app (var 9) (var 3)) (var 8))) (var 8)
 _ = refl
+
+infix 10 _In_
+  
+data _In_ {A : Set} (x : A) : List A -> Set where
+  here : {xs : List A} -> x In (x ,- xs)
+  there : {y : A} {xs : List A} -> x In xs -> x In (y ,- xs)
+
+not<=-Lt : (m n : Nat) -> (m <= n -> Zero) -> Lt n m
+not<=-Lt zero n p = p ozero
+not<=-Lt (suc m) zero p = <>
+not<=-Lt (suc m) (suc n) p = not<=-Lt m n (\ z -> p (osuc z))
+
+Lt-suc : (n : Nat) ->  Lt n (suc n)
+Lt-suc zero = <>
+Lt-suc (suc n) = Lt-suc n
+
+Lt-trans : (n m k : Nat) -> Lt n m -> Lt m k -> Lt n k
+-- Lt-trans n m k p q = ?
+Lt-trans zero (suc m) (suc k) p q = <>
+Lt-trans (suc n) (suc m) (suc k) p q = Lt-trans n m k p q
+
+weakenAll : {X : Set} {P Q : X -> Set} -> ((x : X) -> P x -> Q x) -> (l : List X) -> All P l -> All Q l
+weakenAll _ [] _ = <>
+weakenAll f (x ,- l) (px , allp) = f x px , weakenAll f l allp
+
+Lt-<=-trans : (m n k : Nat) -> Lt m n -> n <= k -> Lt m k
+Lt-<=-trans m .0 zero p ozero = p
+Lt-<=-trans zero (suc n) (suc k) p (osuc q) = <>
+Lt-<=-trans (suc m) (suc n) (suc k) p (osuc q) = Lt-<=-trans m n k p q
+
+freshNameGtAll : (l : List Nat) -> All (\x -> Lt x (freshName l)) l
+freshNameGtAll [] = <>
+freshNameGtAll (x ,- l) with dec<= (freshName l) x
+... | no p = not<=-Lt (freshName l) x p , freshNameGtAll l
+... | yes p = Lt-suc x , weakenAll (\y q -> Lt-trans y x (suc x) (Lt-<=-trans y (freshName l) x q p) (Lt-suc x)) l (freshNameGtAll l)
+
+Lt-not-refl : (x : Nat) -> Lt x x -> Zero
+Lt-not-refl (suc x) p = Lt-not-refl x p
+
+AllLt-notIn : (y : Nat) -> (l : List Nat) -> All (\x -> Lt x y) l -> y In l -> Zero
+AllLt-notIn y (.y ,- l) (y<y , all<y) here = Lt-not-refl y y<y
+AllLt-notIn y (x ,- l) (x<y , all<y) (there yinl) = AllLt-notIn y l all<y yinl
+
+nameIsFresh : (l : List Nat) -> freshName l In l -> Zero
+nameIsFresh l = AllLt-notIn (freshName l) l (freshNameGtAll l)
