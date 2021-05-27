@@ -86,10 +86,10 @@ fromNat (suc n) (osuc p) = suc (fromNat n p)
 -- which includes not having to write down the explicit proof for < (which fromNat) requires
 -- instead, if we provide a calculated version, when we give come constant (like 1)
 -- agda will be able to automatically figure out the required proof, by using this definition
-Lt : Nat -> Nat -> Set
-Lt n      zero = Zero
-Lt zero   (suc m) = One
-Lt (suc n) (suc m) = Lt n m
+-- NB: this is now in Lib.Nat
+-- Lt : Nat -> Nat -> Set
+-- Lt = {!!}
+
 
 -- prove that the calculated version implies the regular one,
 -- so that we may provide the regular proof to fromNat later
@@ -162,9 +162,6 @@ decEqFin (suc x) (suc y) with decEqFin x y
 -- name the constructors var, app, lam
 -- for everything below to work ^^
 data Lam (n : Nat) : Set where
-  var : Fin n -> Lam n
-  app : Lam n -> Lam n -> Lam n
-  lam : Lam (suc n) -> Lam n
 
 -- construct a variable from a Nat directly
 -- you'll need to expose the Lt arg

@@ -140,9 +140,6 @@ three = node 3 (empty <>) (empty <>)
 two : BST -inf +inf
 two = node 2 one three
 
-Dec : (A : Set) -> Set
-Dec A = (A -> Zero) + A
-
 -- TODO:
 -- grey highlight
 
