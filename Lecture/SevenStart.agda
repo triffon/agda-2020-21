@@ -209,82 +209,93 @@ Nat+N-Monoid : Monoid
 Monoid.cat Nat+N-Monoid = Nat+N-Cat
 Monoid.Obj-is-One Nat+N-Monoid = refl
 
-{-
 -- a category with one object
 -- *
 ONE : Category
 Obj ONE = One
 _~>_ ONE _ _ = One
-id~> ONE = {!!}
-_>~>_ ONE = {!!}
-left-id ONE = {!!}
-right-id ONE = {!!}
-assoc ONE = {!!}
+id~> ONE x = x
+_>~>_ ONE _ _ = <>
+left-id ONE _ = refl
+right-id ONE _ = refl
+assoc ONE _ _ _ = refl
 
 -- a category with two objects
 -- * --> *
 module TwoCat where
   data ArrTwo : Two -> Two -> Set where
+    idArr : (x : Two) -> ArrTwo x x
+    ff-tt : ArrTwo ff tt
 
   TWO : Category
   Obj TWO = Two
   _~>_ TWO = ArrTwo
-  id~> TWO = {!!}
-  _>~>_ TWO = {!!}
-  left-id TWO = {!!}
-  right-id TWO = {!!}
-  assoc TWO = {!!}
+  id~> TWO = idArr
+  (TWO >~> idArr _) g = g
+  (TWO >~> ff-tt) (idArr .tt) = ff-tt
+  left-id TWO f = refl
+  right-id TWO (idArr _) = refl
+  right-id TWO ff-tt = refl
+  assoc TWO (idArr _) _ _ = refl
+  assoc TWO ff-tt (idArr .tt) (idArr .tt) = refl
 
 -- we'll be making this a monoid, so the objects will be One for sure
 -- with our arrows being List A s
 List-+L-Cat : Set -> Category
-List-+L-Cat = {!!}
+Obj (List-+L-Cat A) = One
+_~>_ (List-+L-Cat A) _ _ = List A
+id~> (List-+L-Cat A) <> = []
+_>~>_ (List-+L-Cat A) xs ys = xs +L ys
+left-id (List-+L-Cat A) _ = refl
+right-id (List-+L-Cat A) = +L-right-id
+assoc (List-+L-Cat A) = +L-assoc
 
 List-+L-Monoid : Set -> Monoid
-List-+L-Monoid = {!!}
+Monoid.cat (List-+L-Monoid A) = List-+L-Cat A
+Monoid.Obj-is-One (List-+L-Monoid A) = refl
 
 -- a Discrete category is one in which the only arrows are the identity arrows
 -- an example of such a category is the one formed with an arbitrary type, and _==_ as arrows
 Discrete== : Set -> Category
 Obj (Discrete== X) = X
 _~>_ (Discrete== X) = _==_
-id~> (Discrete== X) = {!!}
-_>~>_ (Discrete== X) = {!!}
-left-id (Discrete== X) = {!!}
-right-id (Discrete== X) = {!!}
-assoc (Discrete== X) = {!!}
+id~> (Discrete== X) _ = refl
+_>~>_ (Discrete== X) = ==-trans
+left-id (Discrete== X) refl = refl
+right-id (Discrete== X) refl = refl
+assoc (Discrete== X) refl refl refl = refl
 
 -- we can make a category with whatever arrows we like
 -- if we have no objects
 EMPTY : Set -> Category
 Obj (EMPTY X) = Zero
 _~>_ (EMPTY X) _ _ = X
-id~> (EMPTY X) = {!!}
-_>~>_ (EMPTY X) = {!!}
-left-id (EMPTY X) = {!!}
-right-id (EMPTY X) = {!!}
-assoc (EMPTY X) = {!!}
+id~> (EMPTY X) = zero-elim
+_>~>_ (EMPTY X) {R} f g  = zero-elim R
+left-id (EMPTY X) {S} _ = zero-elim S
+right-id (EMPTY X) {S} f = zero-elim S
+assoc (EMPTY X) f g h = refl
 
 -- we can always "flip" the arrows in a category, to get a "dual" notion of something
 -- very powerful concept
 Op : Category -> Category
 Obj (Op X) = Obj X
 _~>_ (Op X) x y = _~>_ X y x
-id~> (Op X) = {!!}
-_>~>_ (Op X) = {!!}
-left-id (Op X) = {!!}
-right-id (Op X) = {!!}
-assoc (Op X) f g h = {!!}
+id~> (Op X) = id~> X
+_>~>_ (Op X) f g = _>~>_ X g f
+left-id (Op X) = right-id X
+right-id (Op X) = left-id X
+assoc (Op X) f g h = ==-symm (assoc X h g f)
 
 -- a product of two other categories - we want to "carry" our operations pointwise
 Product : Category -> Category -> Category
 Obj (Product X Y) = Obj X * Obj Y
-_~>_ (Product X Y) = {!!}
-id~> (Product X Y) = {!!}
-_>~>_ (Product X Y) = {!!}
-left-id (Product X Y) = {!!}
-right-id (Product X Y) = {!!}
-assoc (Product X Y) = {!!}
+_~>_ (Product X Y) (ax , ay) (bx , by) = _~>_ X ax bx * _~>_ Y ay by
+id~> (Product X Y) (ax , ay) = id~> X ax , id~> Y ay
+_>~>_ (Product X Y) (fx , fy) (gx , gy) = _>~>_ X fx gx , _>~>_ Y fy gy
+left-id (Product X Y) (fx , fy) rewrite left-id X fx | left-id Y fy = refl
+right-id (Product X Y) (fx , fy) rewrite right-id X fx | right-id Y fy = refl
+assoc (Product X Y) (fx , fy) (gx , gy) (hx , hy) rewrite assoc X fx gx hx | assoc Y fy gy hy = refl
 
 -- like homomorphisms
 record _=>_ (C D : Category) : Set where
@@ -311,13 +322,15 @@ id x = x
 -- the identity functor
 -- does nothing
 ID : (C : Category) -> C => C
-ID = {!!}
+ID C = record { F-Obj = id ; F-map = id ; F-map-id = refl ; F-map->~> = \_ _ -> refl }
 
 map : {A B : Set} -> (A -> B) -> List A -> List B
-map = {!!}
+map f [] = []
+map f (x ,- xs) = f x ,- map f xs
 
 map-id : {A : Set} (xs : List A) -> map id xs == xs
-map-id = {!!}
+map-id [] = refl
+map-id (x ,- xs) rewrite map-id xs = refl
 
 _>>_ : {S R T : Set} -> (S -> R) -> (R -> T) -> S -> T
 _>>_ f g x = g (f x)
@@ -325,31 +338,60 @@ _>>_ f g x = g (f x)
 map-compose :
   {A B C : Set} (f : A -> B) (g : B -> C) (xs : List A) ->
   map (f >> g) xs == map g (map f xs)
-map-compose = {!!}
+map-compose f g [] = refl
+map-compose f g (x ,- xs) rewrite map-compose f g xs = refl
 
 -- lists are a functor
-LIST : SET => SET
+LIST : AGDA => AGDA
 F-Obj LIST = List
 F-map LIST = map
-F-map-id LIST = ext {!!}
-F-map->~> LIST f g = ext {!!}
+F-map-id LIST = ext map-id
+F-map->~> LIST f g = ext (map-compose f g)
+
+<=-+N-left : {m n : Nat} -> (k : Nat) -> m <= n -> k +N m <= k +N n
+<=-+N-left zero = id
+<=-+N-left (suc k) m<=n = osuc (<=-+N-left k m<=n)
+
+ADD-map-id : {n : Nat} -> (k : Nat) -> <=-+N-left {n} {n} k (<=-refl n) == <=-refl (k +N n)
+ADD-map-id zero = refl
+ADD-map-id {n} (suc k) rewrite ADD-map-id {n} k = refl
+
+ADD-map->~> : {n m l : Nat} -> (k : Nat) -> (n<=m : n <= m) -> (m<=l : m <= l)
+                            -> <=-+N-left k (<=-trans n<=m m<=l) ==
+                               <=-trans (<=-+N-left k n<=m) (<=-+N-left k m<=l)
+ADD-map->~> zero n<=m m<=l = refl
+ADD-map->~> (suc k) n<=m m<=l rewrite ADD-map->~> k n<=m m<=l = refl
 
 -- addition with some constant is a functor over our previous Nat preorder category
 ADD : Nat -> <=-Cat => <=-Cat
-ADD k = {!!}
+ADD k = record { F-Obj = k +N_; F-map = <=-+N-left k ; F-map-id = ADD-map-id k ; F-map->~> = ADD-map->~> k }
+
+map-+L-distrib : {X Y : Set} (f : X -> Y) -> (xs ys : List X) -> map f (xs +L ys) == map f xs +L map f ys
+map-+L-distrib _ [] _ = refl
+map-+L-distrib f (x ,- xs) ys rewrite map-+L-distrib f xs ys = refl
 
 -- every function generates a functor over the list monoid,
 -- showing that applying it for each element respects the list structure
 LIST+L : {X Y : Set} (f : X -> Y) -> List-+L-Cat X => List-+L-Cat Y
-LIST+L = {!!}
+LIST+L f = record { F-Obj = id ; F-map = map f ; F-map-id = refl ; F-map->~> = map-+L-distrib f }
 
 vTake : {A : Set} {n m : Nat} -> n <= m -> Vec A m -> Vec A n
-vTake = {!!}
+vTake ozero _ = []
+vTake (osuc n<=m) (x ,- xs) = x ,- vTake n<=m xs
+
+VTAKE-map-id : {A : Set} {n : Nat} -> (xs : Vec A n) -> vTake (<=-refl n) xs == xs
+VTAKE-map-id [] = refl
+VTAKE-map-id (x ,- xs) rewrite VTAKE-map-id xs = refl
+
+VTAKE-map->~> : {A : Set} {m n k : Nat} (m<=n : m <= n) (n<=k : n <= k)
+                    -> (xs : Vec A k) -> vTake (<=-trans m<=n n<=k) xs == vTake m<=n (vTake n<=k xs)
+VTAKE-map->~> ozero _ _ = refl
+VTAKE-map->~> (osuc m<=n) (osuc n<=k) (x ,- xs) rewrite VTAKE-map->~> m<=n n<=k xs = refl
 
 -- vTake forms a functor, sending a perorder into a type (Vec X n)
 -- we need to use the opposite category of <=-Cat here, to make the "directions" match up
-VTAKE : Set -> Op <=-Cat => SET
-VTAKE = {!!}
+VTAKE : Set -> Op <=-Cat => AGDA
+VTAKE A = record { F-Obj = Vec A ; F-map = vTake ; F-map-id = ext VTAKE-map-id ; F-map->~> = \f g -> ext (VTAKE-map->~> g f) }
 
 -- form a set of "free arrows" based on a relation
 -- this is exactly the same as a reflexive and transitive closure of a relation
@@ -358,10 +400,29 @@ data Free {X : Set}(R : X -> X -> Set) (x : X) : X -> Set where
   trans : {y z : X} -> R x y -> Free R y z -> Free R x z
 
 composeFree : {X : Set} {R : X -> X -> Set} {x y z : X} -> Free R x y -> Free R y z -> Free R x z
-composeFree = {!!}
+composeFree idArr g = g
+composeFree (trans x f) g = trans x (composeFree f g)
+
+FREE-right-id : {X : Set} {R : X -> X -> Set} {x y : X} (f : Free R x y) -> composeFree f idArr == f
+FREE-right-id idArr = refl
+FREE-right-id (trans x f) rewrite FREE-right-id f = refl
+
+FREE-assoc : {X : Set} {R : X -> X -> Set} {x y z t : X} (f : Free R x y) ->
+             (g : Free R y z) -> (h : Free R z t) -> composeFree (composeFree f g) h == composeFree f (composeFree g h)
+FREE-assoc idArr g h = refl
+FREE-assoc (trans x f) g h rewrite FREE-assoc f g h = refl
+
 
 FREE : (X : Set) -> (X -> X -> Set) -> Category
-FREE = {!!}
+FREE X R = record
+             { Obj = X
+             ; _~>_ = Free R
+             ; id~> = \_ -> idArr
+             ; _>~>_ = composeFree
+             ; left-id = \_ -> refl
+             ; right-id = FREE-right-id
+             ; assoc = FREE-assoc
+             }
 
 data Fin : Nat -> Set where
   zero : {n : Nat} -> Fin (suc n)
@@ -369,9 +430,50 @@ data Fin : Nat -> Set where
 
 -- we want there to be an arrow from (x : Fin n) to suc x, except for the "last number" in Fin n
 Next : {n : Nat} -> Fin n -> Fin n -> Set
-Next = {!!}
+Next zero _ = One
+Next (suc x) zero = Zero
+Next (suc x) (suc y) = Next x y
+
+_ : Next (zero {1}) (suc zero)
+_ = <>
+
+_ : Next (zero {5}) (suc zero)
+_ = <>
+
+_ : Next (zero {5}) (suc (suc (suc zero)))
+_ = <>
+
+Next-id : {n : Nat} -> (x : Fin n) -> Next x x
+Next-id zero = <>
+Next-id (suc x) = Next-id x
+
+Next-compose : {n : Nat} (x y z : Fin n) -> Next x y -> Next y z -> Next x z
+Next-compose zero _ _ _ _ = <>
+Next-compose (suc x) zero _ = \()
+Next-compose (suc x) (suc y) zero _ p = p
+Next-compose (suc x) (suc y) (suc z) p q = Next-compose x y z p q
+
+Finite-left-id : {n : Nat} (x y : Fin n) (f : Next x y) -> Next-compose x x y (Next-id x) f == f
+Finite-left-id zero y <> = refl
+Finite-left-id (suc x) (suc y) f = Finite-left-id x y f
+
+Finite-right-id : {n : Nat} (x y : Fin n) (f : Next x y) -> Next-compose x y y f (Next-id y) == f
+Finite-right-id zero _ <> = refl
+Finite-right-id (suc x) (suc y) f = Finite-right-id x y f
+
+Finite-assoc : {n : Nat} (x y z t : Fin n) (f : Next x y) (g : Next y z) (h : Next z t)
+  -> Next-compose x z t (Next-compose x y z f g) h == Next-compose x y t f (Next-compose y z t g h)
+Finite-assoc zero y z t f g h = refl
+Finite-assoc (suc x) (suc y) (suc z) (suc t) f g h = Finite-assoc x y z t f g h
 
 -- now we can form all the finite categories by choosing how many objects we want via n
 Finite : Nat -> Category
-Finite = ?
--}
+Finite n = record
+             { Obj = Fin n
+             ; _~>_ = Next
+             ; id~> = Next-id
+             ; _>~>_ = \{x y z} -> Next-compose x y z
+             ; left-id = \{x y} -> Finite-left-id x y
+             ; right-id = \{x y} -> Finite-right-id x y
+             ; assoc = \{x y z t} -> Finite-assoc x y z t
+             }
