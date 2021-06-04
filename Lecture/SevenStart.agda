@@ -430,50 +430,11 @@ data Fin : Nat -> Set where
 
 -- we want there to be an arrow from (x : Fin n) to suc x, except for the "last number" in Fin n
 Next : {n : Nat} -> Fin n -> Fin n -> Set
-Next zero _ = One
-Next (suc x) zero = Zero
+Next x zero = Zero
+Next zero (suc zero) = One
+Next zero (suc (suc y)) = Zero
 Next (suc x) (suc y) = Next x y
-
-_ : Next (zero {1}) (suc zero)
-_ = <>
-
-_ : Next (zero {5}) (suc zero)
-_ = <>
-
-_ : Next (zero {5}) (suc (suc (suc zero)))
-_ = <>
-
-Next-id : {n : Nat} -> (x : Fin n) -> Next x x
-Next-id zero = <>
-Next-id (suc x) = Next-id x
-
-Next-compose : {n : Nat} (x y z : Fin n) -> Next x y -> Next y z -> Next x z
-Next-compose zero _ _ _ _ = <>
-Next-compose (suc x) zero _ = \()
-Next-compose (suc x) (suc y) zero _ p = p
-Next-compose (suc x) (suc y) (suc z) p q = Next-compose x y z p q
-
-Finite-left-id : {n : Nat} (x y : Fin n) (f : Next x y) -> Next-compose x x y (Next-id x) f == f
-Finite-left-id zero y <> = refl
-Finite-left-id (suc x) (suc y) f = Finite-left-id x y f
-
-Finite-right-id : {n : Nat} (x y : Fin n) (f : Next x y) -> Next-compose x y y f (Next-id y) == f
-Finite-right-id zero _ <> = refl
-Finite-right-id (suc x) (suc y) f = Finite-right-id x y f
-
-Finite-assoc : {n : Nat} (x y z t : Fin n) (f : Next x y) (g : Next y z) (h : Next z t)
-  -> Next-compose x z t (Next-compose x y z f g) h == Next-compose x y t f (Next-compose y z t g h)
-Finite-assoc zero y z t f g h = refl
-Finite-assoc (suc x) (suc y) (suc z) (suc t) f g h = Finite-assoc x y z t f g h
 
 -- now we can form all the finite categories by choosing how many objects we want via n
 Finite : Nat -> Category
-Finite n = record
-             { Obj = Fin n
-             ; _~>_ = Next
-             ; id~> = Next-id
-             ; _>~>_ = \{x y z} -> Next-compose x y z
-             ; left-id = \{x y} -> Finite-left-id x y
-             ; right-id = \{x y} -> Finite-right-id x y
-             ; assoc = \{x y z t} -> Finite-assoc x y z t
-             }
+Finite n = FREE (Fin n) Next
