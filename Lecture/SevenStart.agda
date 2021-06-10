@@ -473,3 +473,38 @@ Next (suc x) (suc y) = Next x y
 -- now we can form all the finite categories by choosing how many objects we want via n
 Finite : Nat -> Category
 Finite n = FREE (Fin n) Next
+
+_>=>_ : {C D E : Category} -> C => D -> D => E -> C => E
+F-Obj (F >=> G) = \x -> F-Obj G (F-Obj F x)
+F-map (F >=> G) = \f -> F-map G (F-map F f)
+F-map-id (F >=> G) {S} rewrite F-map-id F {S} = F-map-id G {F-Obj F S}
+F-map->~> (F >=> G) {S} {T} {R} f g rewrite F-map->~> F {S} {T} {R} f g = F-map->~> G {F-Obj F S} {F-Obj F T} {F-Obj F R} (F-map F f) (F-map F g)
+
+lemma : {C D : Category} (F G : C => D) ->
+               F-Obj F == F-Obj G -> Set
+lemma {C}
+  record {
+    F-Obj = .(F-Obj G)
+  ; F-map = F-map1
+  ; F-map-id = F-map-id1
+  ; F-map->~> = F-map->~>1
+  } G refl =
+  (S T : Obj C) (f g : _~>_ C S T) -> f == g -> F-map1 f == F-map G g
+
+extFunctor : {C D : Category} (F G : C => D) ->
+             (F-Obj-== : F-Obj F == F-Obj G) ->
+             lemma F G F-Obj-== ->
+             F == G
+extFunctor {C} {D} record { F-Obj = .(F-Obj g) ; F-map = F-map1 ; F-map-id = F-map-id1 ; F-map->~> = F-map->~>1 } g refl F-map-== = {!!}
+
+right-id-Cat : (C D : Category) (f : C => D) -> f >=> ID D == f
+right-id-Cat C D f = {!!}
+
+Cat : Category
+Obj Cat = Category
+_~>_ Cat = _=>_
+id~> Cat = ID
+_>~>_ Cat = _>=>_
+left-id Cat _ = refl
+right-id Cat {S} {T} f = right-id-Cat S T f
+assoc Cat = {!!}
