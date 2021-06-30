@@ -1,6 +1,8 @@
 module Lib.Nat where
 
 open import Lib.Eq
+open import Lib.Zero
+open import Lib.One
 
 data Nat : Set where
   zero : Nat -- zero
@@ -30,9 +32,17 @@ data _<=_ : Nat -> Nat -> Set where
 
 infix 9 _<=_
 
+<=-refl : (n : Nat) -> n <= n
+<=-refl zero = ozero
+<=-refl (suc x) = osuc (<=-refl x)
+
 <=-trans : {n m k : Nat} -> n <= m -> m <= k -> n <= k
 <=-trans ozero q = ozero
 <=-trans (osuc p) (osuc q) = osuc (<=-trans p q)
+
+<=-suc : (n : Nat) -> n <= suc n
+<=-suc zero = ozero
+<=-suc (suc n) = osuc (<=-suc n)
 
 +N-right-suc : (n m : Nat) -> n +N suc m == suc (n +N m)
 +N-right-suc zero m = refl
@@ -41,3 +51,16 @@ infix 9 _<=_
 +N-commut : (n m : Nat) -> n +N m == m +N n
 +N-commut zero m = ==-symm (+N-right-zero m)
 +N-commut (suc n) m rewrite (+N-commut n m) = ==-symm (+N-right-suc m n)
+
+
+<=-monoR-+N : (n m : Nat) -> n <= n +N m
+<=-monoR-+N zero m = ozero
+<=-monoR-+N (suc n) m = osuc (<=-monoR-+N n m)
+
+<=-monoL-+N : (n m : Nat) -> n <= m +N n
+<=-monoL-+N n m rewrite +N-commut m n = <=-monoR-+N n m
+
+Lt : Nat -> Nat -> Set
+Lt n zero = Zero
+Lt zero (suc m) = One
+Lt (suc n) (suc m) = Lt n m

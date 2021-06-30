@@ -1,8 +1,8 @@
 {-# OPTIONS --no-unicode #-}
 
-module Lecture.ThreeStart where
+module Lecture.ThreeSolved where
 
-open import Lib.Nat
+open import Lib.Nat hiding (<=-refl)
 open import Lib.Eq
 open import Lib.List
 open import Lib.One
@@ -461,10 +461,6 @@ module listsplit where
 
   _ : (3 ,- 5 ,- []) <[ (3 ,- 4 ,- 5 ,- 6 ,- []) ]> (4 ,- 6 ,- [])
   _ = left (right (left (right []split)))
-
-  -- for a predicate to be decidable, it must be decidable for every value
-  Dec : {A : Set} -> (A -> Set) -> Set
-  Dec {A} P = (x : A) -> (P x -> Zero) + P x
 
   -- given a decidable predicate and a list, produce two lists
   -- one with all the elements for which the predicate holds
