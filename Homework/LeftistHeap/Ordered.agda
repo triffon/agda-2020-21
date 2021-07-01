@@ -9,15 +9,27 @@ open import Lib.Nat
 
 -- parametrised by the lower bound of the heap
 data Heap (lower : Priority) : Set where
+  empty : Heap lower
+  node : Rank -> (p : Priority) -> Leq lower p -> {llower : Priority} -> Heap llower -> Leq p llower -> {rlower : Priority} -> Heap rlower -> Leq p rlower -> Heap lower
 
+-- note how the left empty has a lower rank than the right node
+wrongRankprop : Heap 0
+wrongRankprop = node 2 0 <> {0} empty <> {5} (node 1 5 <> {5} empty <> {5} empty <>) <>
+
+-- note how the rank assigned here is just wrong
+wrongRank : Heap 0
+wrongRank = node 1337 0 <> {0} empty <> {0} empty <>
 
 rank : {lower : Priority} -> Heap lower -> Rank
-rank = {!!}
+rank empty = 0
+rank (node r _ _ _ _ _ _) = r
 
 mkNode :
   {lower : Priority} (x : Priority) ->
   Leq lower x -> Heap x -> Heap x -> Heap lower
-mkNode = {!!}
+mkNode x lower<=x h1 h2 with decLeq (rank h1) (rank h2)
+... | inl r1<=r2 = node (suc (rank h2 +N rank h1)) x lower<=x h2 (Leq-refl x) h1 (Leq-refl x)
+... | inr r2<=r1 = node (suc (rank h1 +N rank h2)) x lower<=x h1 (Leq-refl x) h2 (Leq-refl x)
 
 {-# TERMINATING #-}
 merge :

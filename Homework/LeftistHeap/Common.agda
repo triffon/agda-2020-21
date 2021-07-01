@@ -45,7 +45,7 @@ min n m with decLeq n m
 min-Leq-left : (n m : Nat) -> Leq (min n m) n
 min-Leq-left n m with decLeq n m
 ... | inl _ = Leq-refl n
-... | inr m<=n = m<=n 
+... | inr m<=n = m<=n
 
 min-right-zero : (m : Nat) -> min m zero == zero
 min-right-zero zero = refl
