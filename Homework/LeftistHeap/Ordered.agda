@@ -20,6 +20,15 @@ wrongRankprop = node 2 0 <> {0} empty <> {5} (node 1 5 <> {5} empty <> {5} empty
 wrongRank : Heap 0
 wrongRank = node 1337 0 <> {0} empty <> {0} empty <>
 
+-- for the ordering
+-- 1 <= 2
+-- 1 <= 3
+-- also, the ranks are correct, since 3 = 1 + (1 + 1)
+-- and the rank property is preserved, since
+-- 1 (rank of the right tree) <= 1 (rank of the left tree)
+proper : Heap 1
+proper = node 3 1 <> {2} (node 1 2 <> {2} empty <> {2} empty <>) <> {3} (node 1 3 <> {3} empty <> {3} empty <>) <>
+
 rank : {lower : Priority} -> Heap lower -> Rank
 rank empty = 0
 rank (node r _ _ _ _ _ _) = r
